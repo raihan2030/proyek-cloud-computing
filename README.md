@@ -89,7 +89,7 @@ Jalankan di terminal Windows (PowerShell/CMD), bukan di dalam container:
 npm install
 ```
 
-Setup Tailwind CSS dengan Vite sudah dikonfigurasi otomatis di `tailwind.config.js`.
+Setup Tailwind CSS v4 dengan Vite sudah dikonfigurasi otomatis di `vite.config.js`.
 
 ### 8. Compile Frontend Assets
 
