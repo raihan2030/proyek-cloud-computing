@@ -122,6 +122,98 @@ Database MySQL dapat diakses di:
 - **User**: root (sesuaikan di `.env`)
 - **Password**: password (sesuaikan di `.env`)
 
+## Daily Startup Guide
+
+Panduan langkah-demi-langkah untuk memulai project setelah istirahat atau setelah menutup aplikasi:
+
+### ☐ Langkah 1: Start MySQL Service
+
+- Buka **Laragon** (atau XAMPP jika menggunakan XAMPP)
+- Klik tombol **Start All** atau pastikan **MySQL** service sudah berjalan
+- Tunggu sampai status menunjukkan bahwa database siap digunakan
+
+### ☐ Langkah 2: Buka Docker Desktop
+
+- Buka aplikasi **Docker Desktop**
+- Tunggu sampai Docker Engine sepenuhnya dimulai (biasanya 1-2 menit)
+- Pastikan status bar menunjukkan Docker siap (tanpa error)
+
+### ☐ Langkah 3: Start MiniStack/LocalStack Container
+
+Pilih salah satu cara:
+
+**Cara 1: Melalui Docker Desktop UI**
+- Buka Docker Desktop
+- Cari container dengan nama project (biasanya `proyek-cloud-computing-*`)
+- Klik tombol **Start** untuk menjalankan container
+
+**Cara 2: Melalui Terminal**
+```bash
+docker-compose up -d
+```
+Tunggu sampai output menunjukkan semua service berjalan (app, web, db, redis, dll).
+
+### ☐ Langkah 4: Start Laravel Backend
+
+- Buka terminal baru di root project folder
+- Jalankan perintah berikut:
+
+```bash
+php artisan serve
+```
+
+Output yang diharapkan:
+```
+   INFO  Server running on [http://127.0.0.1:8000].
+```
+
+**Catatan**: Server akan berjalan di background. Jangan tutup terminal ini.
+
+### ☐ Langkah 5: Start Vite Development Server (Frontend Assets)
+
+- Buka **terminal tab baru** (jangan tutup terminal Laravel)
+- Jalankan salah satu perintah sesuai kebutuhan:
+
+**Untuk Development** (dengan hot reload untuk CSS/JS):
+```bash
+npm run dev
+```
+
+**Untuk Production** (compile dan build):
+```bash
+npm run build
+```
+
+Output yang diharapkan untuk `npm run dev`:
+```
+  VITE v... ready in ... ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  press h + enter to show help
+```
+
+### ☐ Langkah 6: Akses Dashboard
+
+Buka browser dan akses aplikasi di:
+
+```
+http://127.0.0.1:8000
+```
+
+Aplikasi sekarang sudah siap digunakan! 🎉
+
+### Tips Shutdown
+
+Untuk menghentikan project dengan benar:
+
+1. Tekan `Ctrl+C` di terminal Laravel (Step 4)
+2. Tekan `Ctrl+C` di terminal Vite (Step 5)
+3. Jalankan di terminal baru:
+   ```bash
+   docker-compose down
+   ```
+4. Stop MySQL service di Laragon/XAMPP
+
 ## Struktur Project
 
 ```
