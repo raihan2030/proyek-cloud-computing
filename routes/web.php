@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 Route::get('/', function () {
     return view('welcome');
@@ -17,7 +18,27 @@ Route::get('/admin', function () {
 });
 
 Route::get('/dashboard', function () {
-    // 1. Fetch ALL active subscriptions for the user
+    
+    $userId = Auth::id();
+
+    // 1. Gather Top Metrics Data
+    $totalResources = DB::table('provisioned_resources')
+        ->where('user_id', $userId)
+        ->count();
+
+    $activeServices = DB::table('user_subscriptions')
+        ->where('user_id', $userId)
+        ->where('subscription_status', 'active')
+        ->count();
+
+    // Calculate the current monthly bill based on ACTIVE services (Run Rate)
+    $monthlyBill = DB::table('user_subscriptions')
+        ->join('subscription_plans', 'user_subscriptions.plan_id', '=', 'subscription_plans.id')
+        ->where('user_subscriptions.user_id', $userId)
+        ->where('user_subscriptions.subscription_status', 'active')
+        ->sum('subscription_plans.monthly_price');
+
+    // 2. Fetch ALL active subscriptions for the user
     $activeSubscriptions = DB::table('user_subscriptions')
         ->where('user_id', Auth::id())
         ->where('subscription_status', 'active')
@@ -27,7 +48,7 @@ Route::get('/dashboard', function () {
 
     $bucketsData = [];
 
-    // 2. Loop through every bucket and weigh its contents
+    // 3. Loop through every bucket and weigh its contents
     foreach ($activeSubscriptions as $sub) {
         $bucketName = $sub->ministack_bucket_name;
         $totalGB = $sub->remaining_storage_quota_gb;
@@ -72,9 +93,13 @@ Route::get('/dashboard', function () {
 
     $storagePlans = DB::table('subscription_plans')->where('service_type', 'iaas')->get();
 
+    // 4. Return view with all dynamic values bundled
     return view('dashboard', [
-        'bucketsData' => $bucketsData,
-        'storagePlans' => $storagePlans
+        'totalResources' => $totalResources,
+        'activeServices' => $activeServices,
+        'monthlyBill'    => $monthlyBill,
+        'bucketsData'    => $bucketsData,
+        'storagePlans'   => $storagePlans
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 

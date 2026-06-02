@@ -2,51 +2,53 @@
     <div class="py-12 bg-gray-50">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-gray-600">
-                    <div class="flex justify-between items-start">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-indigo-500 hover:shadow-md transition">
+                    <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-gray-500 text-sm font-medium">Total Resources (Template) </p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">0</p>
-                            <p class="text-gray-600 text-xs mt-2">+2 added this month</p>
+                            <p class="text-sm font-medium text-black-500 bold uppercase tracking-wider">Total Resources</p>
+                            <h4 class="text-3xl font-bold text-gray-800 mt-1">{{ $totalResources }}</h4>
                         </div>
-                        <div class="bg-gray-100 rounded-full p-3">
-                            <svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                        <div class="p-3 bg-indigo-50 text-indigo-600 rounded-full">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                             </svg>
                         </div>
                     </div>
+                    <p class="text-sm text-gray-400 mt-2">Active instances & storage volumes</p>
                 </div>
 
-                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-gray-600">
-                    <div class="flex justify-between items-start">
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500 hover:shadow-md transition">
+                    <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-gray-500 text-sm font-medium">Active Services (Template)</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">0</p>
-                            <p class="text-gray-600 text-xs mt-2">0 maintenance required</p>
+                            <p class="text-sm font-medium text-black-500 bold uppercase tracking-wider">Active Services</p>
+                            <h4 class="text-3xl font-bold text-gray-800 mt-1">{{ $activeServices }}</h4>
                         </div>
-                        <div class="bg-gray-100 rounded-full p-3">
-                            <svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v2h16V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5H4v8a2 2 0 002 2h12a2 2 0 002-2V7h-2v1a1 1 0 11-2 0V7H9v1a1 1 0 11-2 0V7H6v1a1 1 0 11-2 0V7z" />
+                        <div class="p-3 bg-green-50 text-green-600 rounded-full">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                             </svg>
                         </div>
                     </div>
+                    <p class="text-sm text-gray-400 mt-2">Running cloud subscriptions</p>
                 </div>
 
-                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-gray-600">
-                    <div class="flex justify-between items-start">
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500 hover:shadow-md transition">
+                    <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-gray-500 text-sm font-medium">Monthly Bill (Template)</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">$0.00</p>
-                            <p class="text-gray-600 text-xs mt-2">$0.00 from previous month</p>
+                            <p class="text-sm font-medium text-black-500 bold uppercase tracking-wider">Monthly Spend</p>
+                            <h4 class="text-3xl font-bold text-gray-800 mt-1">${{ number_format($monthlyBill, 2) }}</h4>
                         </div>
-                        <div class="bg-gray-100 rounded-full p-3">
-                            <svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M8.16 5.314l4.897-1.596c.191-.062.392-.062.583 0l4.898 1.596c.59.192.984.768.984 1.404v7.284a1.563 1.563 0 01-.92 1.438l-4.898 1.595a1.563 1.563 0 01-.583 0l-4.898-1.595a1.563 1.563 0 01-.92-1.438V6.718c0-.636.394-1.212.984-1.404zM10 9a1 1 0 100 2 1 1 0 000-2z" />
+                        <div class="p-3 bg-amber-50 text-amber-600 rounded-full">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                             </svg>
                         </div>
                     </div>
+                    <p class="text-sm text-gray-400 mt-2">Projected cost of active services</p>
                 </div>
+
             </div>
 
             <div class="bg-white rounded-lg shadow-md p-6 mb-6 border-l-4 border-blue-500">
@@ -93,7 +95,16 @@
                         <form action="{{ route('s3.uploadObject') }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             <label class="block text-sm font-medium text-gray-700 mb-1">Target Bucket</label>
-                            <input type="text" name="bucket_name" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 mb-3" placeholder="e.g., iaas-firas-123" required>
+                            @if(isset($bucketsData) && count($bucketsData) > 0)
+                                <select name="bucket_name" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 mb-3" required>
+                                    <option value="" disabled selected>Select a bucket...</option>
+                                    @foreach($bucketsData as $bucket)
+                                        <option value="{{ $bucket['name'] }}">{{ $bucket['name'] }}</option>
+                                    @endforeach
+                                </select>
+                            @else
+                                <input type="text" disabled class="w-full border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-500 mb-3 cursor-not-allowed" placeholder="No active buckets available. Create one first!">
+                            @endif
                             
                             <label class="block text-sm font-medium text-gray-700 mb-1">Select Files</label>
                             <input type="file" name="files[]" multiple class="w-full border-gray-300 rounded-md shadow-sm bg-white mb-4 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
@@ -110,8 +121,20 @@
                         
                         <form action="{{ route('s3.viewFiles') }}" method="POST" class="flex gap-2 mb-4">
                             @csrf
-                            <input type="text" name="bucket_name" class="flex-1 border-gray-300 rounded-md shadow-sm" placeholder="Enter bucket name to view files..." required value="{{ session('current_bucket') ?? '' }}">
-                            <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700">Open Explorer</button>
+                            @if(isset($bucketsData) && count($bucketsData) > 0)
+                                <select name="bucket_name" class="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                                    <option value="" disabled {{ !session('current_bucket') ? 'selected' : '' }}>Select a bucket to view files...</option>
+                                    @foreach($bucketsData as $bucket)
+                                        <option value="{{ $bucket['name'] }}" {{ session('current_bucket') === $bucket['name'] ? 'selected' : '' }}>
+                                            {{ $bucket['name'] }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700">Open Explorer</button>
+                            @else
+                                <input type="text" disabled class="flex-1 border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-500 cursor-not-allowed" placeholder="No active buckets available.">
+                                <button type="button" disabled class="bg-gray-400 text-white px-4 py-2 rounded-md cursor-not-allowed">Open Explorer</button>
+                            @endif
                         </form>
 
                         @if(session('files'))
