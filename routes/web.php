@@ -17,47 +17,63 @@ Route::get('/admin', function () {
 });
 
 Route::get('/dashboard', function () {
-    // 1. Check for the NEWEST active subscription
-    $activeSubscription = DB::table('user_subscriptions')
+    // 1. Fetch ALL active subscriptions for the user
+    $activeSubscriptions = DB::table('user_subscriptions')
         ->where('user_id', Auth::id())
         ->where('subscription_status', 'active')
         ->whereNotNull('ministack_bucket_name')
-        ->latest('start_date') // Ensures we grab the most recent one!
-        ->first();
+        ->orderBy('start_date', 'desc')
+        ->get();
 
-    $userBucket = $activeSubscription ? $activeSubscription->ministack_bucket_name : null;
-    $totalGB = $activeSubscription ? $activeSubscription->remaining_storage_quota_gb : 5;
-    $usedBytes = 0;
+    $bucketsData = [];
 
-    // 2. Weigh the files
-    if ($userBucket) {
+    // 2. Loop through every bucket and weigh its contents
+    foreach ($activeSubscriptions as $sub) {
+        $bucketName = $sub->ministack_bucket_name;
+        $totalGB = $sub->remaining_storage_quota_gb;
+        $usedBytes = 0;
+
         try {
             $s3Client = Storage::disk('s3')->getClient();
-            $objects = $s3Client->listObjectsV2(['Bucket' => $userBucket]);
+            $objects = $s3Client->listObjectsV2(['Bucket' => $bucketName]);
             if (!empty($objects['Contents'])) {
                 foreach ($objects['Contents'] as $object) {
                     $usedBytes += $object['Size'];
                 }
             }
-        } catch (\Exception $e) {}
-    }
+        } catch (\Exception $e) {} // Fail silently if MiniStack is off
 
-    $usedGB = $usedBytes / (1024 * 1024 * 1024);
-    
-    // 3. User-Friendly Formatting (Show MB if less than 0.1 GB)
-    if ($usedGB > 0 && $usedGB < 0.1) {
-        $displaySize = round($usedBytes / (1024 * 1024), 2) . ' MB';
-    } else {
-        $displaySize = round($usedGB, 2) . ' GB';
+        $usedGB = $usedBytes / (1024 * 1024 * 1024);
+        
+        if ($usedGB > 0 && $usedGB < 0.1) {
+            $displaySize = round($usedBytes / (1024 * 1024), 2) . ' MB';
+        } else {
+            $displaySize = round($usedGB, 2) . ' GB';
+        }
+
+        $percentage = ($totalGB > 0) ? ($usedGB / $totalGB) * 100 : 0;
+        
+        // Determine progress bar color
+        $colorClass = 'bg-blue-600';
+        if ($percentage > 90) $colorClass = 'bg-red-600';
+        elseif ($percentage > 75) $colorClass = 'bg-yellow-500';
+
+        // Add to the buffet tray
+        $bucketsData[] = [
+            'name' => $bucketName,
+            'usedGB' => $usedGB,
+            'totalGB' => $totalGB,
+            'displaySize' => $displaySize,
+            'percentage' => min($percentage, 100),
+            'available' => round(max($totalGB - $usedGB, 0), 2) . ' GB',
+            'colorClass' => $colorClass
+        ];
     }
 
     $storagePlans = DB::table('subscription_plans')->where('service_type', 'iaas')->get();
 
     return view('dashboard', [
-        'usedGB' => $usedGB,
-        'displaySize' => $displaySize, // Pass the friendly string to the view
-        'totalGB' => $totalGB,
-        'percentage' => ($totalGB > 0) ? ($usedGB / $totalGB) * 100 : 0,
+        'bucketsData' => $bucketsData,
         'storagePlans' => $storagePlans
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');

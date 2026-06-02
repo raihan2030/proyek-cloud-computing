@@ -165,50 +165,60 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition border-t-4 border-blue-500">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-800">S3 Storage (Active)</h3>
-                        <div class="bg-gray-100 rounded-full p-2">
-                            <svg class="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
-                            </svg>
+                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition border-t-4 border-blue-500 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800">S3 Storage Quotas</h3>
+                            <div class="bg-blue-50 text-blue-600 rounded-full px-3 py-1 text-xs font-bold">
+                                {{ count($bucketsData) }} Active
+                            </div>
                         </div>
+
+                        @if(count($bucketsData) > 0)
+                            <div class="mb-5">
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Select Bucket to View</label>
+                                <select id="bucket-selector" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50">
+                                    @foreach($bucketsData as $index => $bucket)
+                                        <option value="{{ $index }}">{{ $bucket['name'] }} ({{ $bucket['totalGB'] }}GB Plan)</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="mb-4">
+                                <div class="flex justify-between items-center mt-4 mb-2">
+                                    <span class="text-sm font-medium text-gray-600">Capacity Used</span>
+                                    <span id="display-size-text" class="text-sm font-bold text-gray-800">
+                                        {{ $bucketsData[0]['displaySize'] }} / {{ $bucketsData[0]['totalGB'] }} GB ({{ number_format($bucketsData[0]['percentage'], 0) }}%)
+                                    </span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div id="capacity-progress-bar" class="{{ $bucketsData[0]['colorClass'] }} h-2 rounded-full transition-all duration-500" style="width: {{ $bucketsData[0]['percentage'] }}%"></div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2 mb-4">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Available Storage</span>
+                                    <span id="available-storage-text" class="font-semibold text-gray-800">{{ $bucketsData[0]['available'] }}</span>
+                                </div>
+                            </div>
+                        @else
+                            <div class="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-md">
+                                No active buckets.<br>Provision a new bucket to see quotas here.
+                            </div>
+                        @endif
                     </div>
 
-                    <div class="mb-4">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-sm font-medium text-gray-600">Capacity Used</span>
-                            <span class="text-sm font-bold text-gray-800">{{ $displaySize }} / {{ $totalGB ?? 5 }} GB ({{ number_format($percentage ?? 0, 0) }}%)</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="{{ ($percentage ?? 0) > 90 ? 'bg-red-600' : (($percentage ?? 0) > 75 ? 'bg-yellow-500' : 'bg-blue-600') }} h-2 rounded-full transition-all duration-500" style="width: {{ min($percentage ?? 0, 100) }}%"></div>
-                        </div>
-                    </div>
-
-                    <div class="space-y-2 mb-4">
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-600">Available Storage</span>
-                            <span class="font-semibold text-gray-800">{{ number_format(max(($totalGB ?? 5) - ($usedGB ?? 0), 0), 2) }} GB</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-600">Active Buckets</span>
-                            <span class="font-semibold text-gray-800">{{ session('current_bucket') ? '1' : '0' }}</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-600">Data Requests/Day</span>
-                            <span class="font-semibold text-gray-800">12 (Mocked)</span>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-2 pt-4 border-t border-gray-200">
-                        <button class="flex-1 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition">
-                            Manage
-                        </button>
-                        <button class="flex-1 px-3 py-2 bg-gray-100 text-gray-800 text-sm rounded-lg hover:bg-gray-200 transition">
-                            View Details
-                        </button>
+                    <div class="flex gap-2 pt-4 border-t border-gray-200 mt-4">
+                        <a href="#upload-form" class="flex-1 px-3 py-2 text-center bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition">
+                            Upload Files
+                        </a>
                     </div>
                 </div>
+
+                <script>
+                    window.userBucketsData = @json($bucketsData);
+                </script>
 
                 <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
                     <div class="flex items-center justify-between mb-4">
@@ -268,6 +278,7 @@
                             View Details
                         </button>
                     </div>
+
                 </div>
 
                 <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
@@ -453,9 +464,10 @@
     </div>
 
     <script>
+        
     document.addEventListener('DOMContentLoaded', function() {
 
-        // FEATURE 2: SEAMLESS AJAX DELETE
+        // FEATURE 1: SEAMLESS AJAX DELETE
         const deleteForms = document.querySelectorAll('.ajax-delete-form');
         deleteForms.forEach(form => {
             form.addEventListener('submit', function(e) {
@@ -492,6 +504,25 @@
                 });
             });
         });
+
+        // FEATURE 3: DYNAMIC BUCKET QUOTA SELECTOR
+        const bucketSelector = document.getElementById('bucket-selector');
+        if (bucketSelector && window.userBucketsData) {
+            bucketSelector.addEventListener('change', function() {
+                const selectedIndex = this.value;
+                const bucket = window.userBucketsData[selectedIndex];
+                
+                // Update Text
+                document.getElementById('display-size-text').innerText = 
+                    `${bucket.displaySize} / ${bucket.totalGB} GB (${Math.round(bucket.percentage)}%)`;
+                document.getElementById('available-storage-text').innerText = bucket.available;
+                
+                // Update Bar Width and Color
+                const progressBar = document.getElementById('capacity-progress-bar');
+                progressBar.style.width = bucket.percentage + '%';
+                progressBar.className = `${bucket.colorClass} h-2 rounded-full transition-all duration-500`;
+            });
+        }
 
     });
     </script>
