@@ -137,7 +137,7 @@ class S3Controller extends Controller
         }
     }
 
-    // Feature 3: View Files in a Bucket
+    // Feature 3: View Files in a Bucket (Now AJAX-Ready)
     public function viewFiles(Request $request)
     {
         $request->validate(['bucket_name' => 'required|string']);
@@ -146,11 +146,24 @@ class S3Controller extends Controller
         try {
             $s3Client = Storage::disk('s3')->getClient();
             $objects = $s3Client->listObjectsV2(['Bucket' => $bucketName]);
-            
             $files = $objects['Contents'] ?? [];
+
+            // If the request comes from our JavaScript, return JSON
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'files' => $files,
+                    'current_bucket' => $bucketName
+                ]);
+            }
+
+            // Fallback for standard page loads
             return back()->with('files', $files)->with('current_bucket', $bucketName);
             
-        } catch (S3Exception $e) {
+        } catch (\Exception $e) {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            }
             return back()->with('error', 'Failed to fetch files: ' . $e->getMessage());
         }
     }

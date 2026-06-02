@@ -119,7 +119,7 @@
                             Storage Explorer & Termination
                         </h4>
                         
-                        <form action="{{ route('s3.viewFiles') }}" method="POST" class="flex gap-2 mb-4">
+                        <form id="explorer-form" action="{{ route('s3.viewFiles') }}" method="POST" class="flex gap-2 mb-4">
                             @csrf
                             @if(isset($bucketsData) && count($bucketsData) > 0)
                                 <select name="bucket_name" class="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
@@ -130,24 +130,24 @@
                                         </option>
                                     @endforeach
                                 </select>
-                                <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700">Open Explorer</button>
+                                <button type="submit" id="explorer-btn" class="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700">Open Explorer</button>
                             @else
                                 <input type="text" disabled class="flex-1 border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-500 cursor-not-allowed" placeholder="No active buckets available.">
                                 <button type="button" disabled class="bg-gray-400 text-white px-4 py-2 rounded-md cursor-not-allowed">Open Explorer</button>
                             @endif
                         </form>
 
-                        @if(session('files'))
-                            <div class="bg-white border rounded-md overflow-hidden mb-4">
-                                <table class="w-full text-sm text-left text-gray-500">
-                                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
-                                        <tr>
-                                            <th class="px-4 py-3">File Name</th>
-                                            <th class="px-4 py-3">Size (Bytes)</th>
-                                            <th class="px-4 py-3 text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
+                        <div id="file-explorer-container" class="bg-white border rounded-md overflow-hidden mb-4 {{ session('files') ? '' : 'hidden' }}">
+                            <table class="w-full text-sm text-left text-gray-500">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                                    <tr>
+                                        <th class="px-4 py-3">File Name</th>
+                                        <th class="px-4 py-3">Size (Bytes)</th>
+                                        <th class="px-4 py-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="file-explorer-body">
+                                    @if(session('files'))
                                         @forelse(session('files') as $file)
                                             <tr class="border-b">
                                                 <td class="px-4 py-3 font-medium text-gray-900">{{ $file['Key'] }}</td>
@@ -165,10 +165,21 @@
                                         @empty
                                             <tr><td colspan="3" class="px-4 py-4 text-center text-gray-500">Bucket is empty.</td></tr>
                                         @endforelse
-                                    </tbody>
-                                </table>
-                            </div>
-                        @endif
+                                    @endif
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div id="danger-zone-container" class="mt-4 pt-4 border-t border-gray-200 {{ session('current_bucket') ? '' : 'hidden' }}">
+                            <form action="{{ route('s3.deleteBucket') }}" method="POST" onsubmit="return confirm('WARNING: Are you sure you want to terminate this bucket? This will stop billing and cannot be undone.');">
+                                @csrf
+                                <input type="hidden" name="bucket_name" id="danger-zone-bucket" value="{{ session('current_bucket') }}">
+                                <button type="submit" class="text-sm text-red-600 font-medium hover:text-red-800 flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    <span id="danger-zone-text">Terminate Service ({{ session('current_bucket') }})</span>
+                                </button>
+                            </form>
+                        </div>
 
                         @if(session('current_bucket'))
                         <div class="mt-4 pt-4 border-t border-gray-200">
@@ -491,44 +502,117 @@
     document.addEventListener('DOMContentLoaded', function() {
 
         // FEATURE 1: SEAMLESS AJAX DELETE
-        const deleteForms = document.querySelectorAll('.ajax-delete-form');
-        deleteForms.forEach(form => {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault(); // Stop page reload
+        // We put this in a function so we can re-run it after injecting new HTML rows
+        function bindAjaxDeleteForms() {
+            const deleteForms = document.querySelectorAll('.ajax-delete-form');
+            deleteForms.forEach(form => {
+                // Remove old listeners to prevent double-clicking
+                const newForm = form.cloneNode(true);
+                form.parentNode.replaceChild(newForm, form);
                 
-                if (!confirm('Delete this file?')) return;
+                newForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    if (!confirm('Delete this file?')) return;
 
-                const formData = new FormData(form);
-                const tableRow = form.closest('tr'); // Find the specific row to hide
+                    const formData = new FormData(newForm);
+                    const tableRow = newForm.closest('tr'); 
+                    tableRow.style.opacity = '0.5';
 
-                // Dim the row to show it's working
-                tableRow.style.opacity = '0.5';
-
-                fetch(form.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if(data.success) {
-                        // Make the row disappear smoothly
-                        tableRow.style.display = 'none';
-                    } else {
-                        alert('Failed to delete file.');
-                        tableRow.style.opacity = '1';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    tableRow.style.opacity = '1';
+                    fetch(newForm.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'Accept': 'application/json' }
+                    })
+                    .then(res => res.ok ? res.json() : Promise.reject('Server error'))
+                    .then(data => {
+                        if(data.success) tableRow.style.display = 'none';
+                        else { alert('Failed to delete.'); tableRow.style.opacity = '1'; }
+                    })
+                    .catch(() => { alert('Error processing delete.'); tableRow.style.opacity = '1'; });
                 });
             });
-        });
+        }
 
-        // FEATURE 3: DYNAMIC BUCKET QUOTA SELECTOR
+        // Run once on page load for any PHP-rendered buttons
+        bindAjaxDeleteForms();
+
+
+        // --- FEATURE: AJAX STORAGE EXPLORER ---
+        const explorerForm = document.getElementById('explorer-form');
+        if (explorerForm) {
+            explorerForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const formData = new FormData(explorerForm);
+                const bucketName = formData.get('bucket_name');
+                if(!bucketName) return;
+
+                const btn = document.getElementById('explorer-btn');
+                const originalText = btn.innerText;
+                btn.innerText = 'Loading...';
+                btn.disabled = true;
+
+                fetch(explorerForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'Accept': 'application/json' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+
+                    if (data.success) {
+                        const container = document.getElementById('file-explorer-container');
+                        const tbody = document.getElementById('file-explorer-body');
+                        
+                        container.classList.remove('hidden');
+                        tbody.innerHTML = ''; // Clear old table data
+
+                        if (data.files.length === 0) {
+                            tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-4 text-center text-gray-500">Bucket is empty.</td></tr>`;
+                        } else {
+                            // Dynamically build a table row for every file returned by Laravel
+                            data.files.forEach(file => {
+                                const sizeFmt = new Intl.NumberFormat().format(file.Size);
+                                const downloadUrl = `/s3/download/${bucketName}/${file.Key}`;
+                                const token = document.querySelector('input[name="_token"]').value;
+
+                                tbody.innerHTML += `
+                                    <tr class="border-b">
+                                        <td class="px-4 py-3 font-medium text-gray-900">${file.Key}</td>
+                                        <td class="px-4 py-3">${sizeFmt}</td>
+                                        <td class="px-4 py-3 text-right flex justify-end gap-2">
+                                            <a href="${downloadUrl}" class="text-blue-600 hover:underline">Download</a>
+                                            <form class="ajax-delete-form" action="/s3/delete-file" method="POST">
+                                                <input type="hidden" name="_token" value="${token}">
+                                                <input type="hidden" name="bucket_name" value="${bucketName}">
+                                                <input type="hidden" name="file_key" value="${file.Key}">
+                                                <button type="submit" class="text-red-600 hover:underline">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                `;
+                            });
+                            // Attach the silent delete logic to these brand new buttons!
+                            bindAjaxDeleteForms();
+                        }
+
+                        // Show the Terminate button for this specific bucket
+                        document.getElementById('danger-zone-container').classList.remove('hidden');
+                        document.getElementById('danger-zone-bucket').value = bucketName;
+                        document.getElementById('danger-zone-text').innerText = `Terminate Service (${bucketName})`;
+                    }
+                })
+                .catch(() => {
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                    alert('Network error while fetching files.');
+                });
+            });
+        }
+
+        // FEATURE 2: DYNAMIC BUCKET QUOTA SELECTOR
         const bucketSelector = document.getElementById('bucket-selector');
         if (bucketSelector && window.userBucketsData) {
             bucketSelector.addEventListener('change', function() {
