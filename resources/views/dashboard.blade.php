@@ -72,6 +72,15 @@
                             <label class="block text-sm font-medium text-gray-700 mb-1">Bucket Name</label>
                             <p class="text-xs text-gray-500 mb-2">Must be lowercase, no spaces.</p>
                             <input type="text" name="bucket_name" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 mb-4" placeholder="e.g., iaas-firas-123" required>
+                            
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Storage Plan</label>
+                            <select name="plan_id" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 mb-4" required>
+                                <option value="" disabled selected>Select a plan...</option>
+                                @foreach($storagePlans as $plan)
+                                    <option value="{{ $plan->id }}">{{ $plan->plan_name }} ({{ $plan->storage_quota_gb }}GB) - ${{ $plan->monthly_price }}/mo</option>
+                                @endforeach
+                            </select>
+
                             <button type="submit" class="w-full bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition shadow-sm">Provision in MiniStack</button>
                         </form>
                     </div>

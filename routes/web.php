@@ -17,17 +17,25 @@ Route::get('/admin', function () {
 });
 
 Route::get('/dashboard', function () {
-    // 1. Find if the user currently has an active bucket rented
-    $userBucket = DB::table('provisioned_resources')
+    // 1. Check if user has an active bucket and find their plan
+    $activeResource = DB::table('provisioned_resources')
         ->where('user_id', Auth::id())
         ->where('resource_type', 'storage')
         ->where('status', 'running')
-        ->value('ministack_resource_id');
+        ->first();
 
+    $userBucket = $activeResource ? $activeResource->ministack_resource_id : null;
     $usedGB = 0;
-    $totalGB = 5; // Default quota based on your database design
+    $totalGB = 5; // Default fallback
 
-    // 2. If they have a bucket, weigh the files inside it
+    if ($activeResource) {
+        $plan = DB::table('subscription_plans')->where('id', $activeResource->plan_id)->first();
+        if ($plan) {
+            $totalGB = $plan->storage_quota_gb; // Dynamically set the Max Capacity!
+        }
+    }
+
+    // 2. Weigh the files
     if ($userBucket) {
         try {
             $s3Client = Storage::disk('s3')->getClient();
@@ -39,19 +47,21 @@ Route::get('/dashboard', function () {
                     $currentBytes += $object['Size'];
                 }
             }
-            
-            // Convert raw bytes into Gigabytes
             $usedGB = $currentBytes / (1024 * 1024 * 1024);
-        } catch (\Exception $e) {
-            // Fails silently if MiniStack is offline, defaulting to 0 GB
-        }
+        } catch (\Exception $e) {}
     }
 
-    // 3. Deliver the prepared data tray to the Blade view
+    // 3. Fetch the storage plans from the seeder we ran earlier
+    $storagePlans = DB::table('subscription_plans')
+        ->where('service_type', 'iaas')
+        ->where('is_active', true)
+        ->get();
+
     return view('dashboard', [
-        'usedGB' => round($usedGB, 4), // Rounded for cleaner display
+        'usedGB' => round($usedGB, 4),
         'totalGB' => $totalGB,
-        'percentage' => ($usedGB / $totalGB) * 100
+        'percentage' => ($totalGB > 0) ? ($usedGB / $totalGB) * 100 : 0,
+        'storagePlans' => $storagePlans // Handing the menu to the view
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 

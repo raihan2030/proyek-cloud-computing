@@ -10,72 +10,85 @@ use Aws\S3\Exception\S3Exception;
 
 class S3Controller extends Controller
 {
-    // Feature 1: Create an Isolated Bucket
+    // Feature 1: Create Bucket with Dynamic Plan Choice
     public function createBucket(Request $request)
     {
         $request->validate([
-            'bucket_name' => 'required|string|min:3|max:63|regex:/^[a-z0-9.-]+$/'
+            'bucket_name' => 'required|string|min:3|max:63|regex:/^[a-z0-9.-]+$/',
+            'plan_id' => 'required|exists:subscription_plans,id' // Validate the choice
         ]);
         
         $bucketName = $request->bucket_name;
+        $planId = $request->plan_id;
         $userId = Auth::id(); 
 
+        // Fetch the plan to dynamically calculate the hourly billing cost
+        $plan = DB::table('subscription_plans')->where('id', $planId)->first();
+        $hourlyCost = $plan ? ($plan->monthly_price / 720) : 0.007;
+
         try {
-            // 1. Build the physical locker in MiniStack
             $s3Client = Storage::disk('s3')->getClient();
-            $s3Client->createBucket([
-                'Bucket' => $bucketName
-            ]);
+            $s3Client->createBucket(['Bucket' => $bucketName]);
             
-            // 2. Write the record to the database clipboard (Raihan's Schema)
             DB::table('provisioned_resources')->insert([
                 'user_id' => $userId,
-                'plan_id' => 1, // Links to our new 'Basic Storage' plan
-                'resource_type' => 'storage', // Must be 'storage'
-                'instance_name' => $bucketName, // Required by schema
+                'plan_id' => $planId, 
+                'resource_type' => 'storage',
+                'instance_name' => $bucketName,
                 'ministack_resource_id' => $bucketName,
                 'configuration' => json_encode([
                     'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
-                    'created_via' => 'web_dashboard'
+                    'created_via' => 'web_dashboard',
+                    'quota_gb' => $plan->storage_quota_gb 
                 ]),
-                'status' => 'running', // Must be 'running'
-                'hourly_cost' => 0.007, // Approx $5 / 720 hours
+                'status' => 'running',
+                'hourly_cost' => round($hourlyCost, 5), // Save the accurate cost!
                 'rent_start_date' => now(),
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
 
-            return back()->with('success', "Bucket '{$bucketName}' created in MiniStack and saved to Database!");
+            return back()->with('success', "Bucket '{$bucketName}' provisioned on the '{$plan->plan_name}'!");
             
-        } catch (S3Exception $e) {
-            return back()->with('error', 'MiniStack Error: ' . $e->getMessage());
         } catch (\Exception $e) {
-            return back()->with('error', 'Database Error: ' . $e->getMessage());
+            return back()->with('error', 'Error: ' . $e->getMessage());
         }
     }
 
-    // Feature 2: Batch Upload Objects (With 5GB Quota Enforcement)
+    // Feature 2: Batch Upload with Dynamic Quota Checking
     public function uploadObject(Request $request)
     {
         $request->validate([
             'bucket_name' => 'required|string',
-            'files' => 'required|array',       // Ensures we received a list
-            'files.*' => 'required|file'       // Ensures every item in the list is a valid file
+            'files' => 'required|array',       
+            'files.*' => 'required|file'       
         ]);
 
         $bucketName = $request->bucket_name;
         $files = $request->file('files');
 
-        // 1. Calculate the weight of ALL new files combined on the pallet
         $newFilesTotalSize = 0;
         foreach ($files as $file) {
             $newFilesTotalSize += $file->getSize();
         }
 
         try {
+            // 1. Find out what plan this bucket belongs to
+            $activeResource = DB::table('provisioned_resources')
+                ->where('ministack_resource_id', $bucketName)
+                ->where('status', 'running')
+                ->first();
+
+            $limitGB = 5; // Default
+            if ($activeResource) {
+                $plan = DB::table('subscription_plans')->where('id', $activeResource->plan_id)->first();
+                if ($plan) $limitGB = $plan->storage_quota_gb;
+            }
+
+            $limitBytes = $limitGB * 1024 * 1024 * 1024; 
+
+            // 2. Weigh the existing bucket
             $s3Client = Storage::disk('s3')->getClient();
-            
-            // 2. Calculate Current Luggage Weight (Existing Bucket Size)
             $objects = $s3Client->listObjectsV2(['Bucket' => $bucketName]);
             $currentSize = 0;
             
@@ -85,18 +98,15 @@ class S3Controller extends Controller
                 }
             }
 
-            // 3. The Limit Check (5GB)
-            $limitBytes = 5368709120; 
-            
+            // 3. The Dynamic Limit Check
             if (($currentSize + $newFilesTotalSize) > $limitBytes) {
-                return back()->with('error', 'Upload Blocked: Adding these files exceeds your 5GB quota.');
+                return response()->json(['success' => false, 'message' => "Upload Blocked: Adding these files exceeds your {$limitGB}GB quota."], 422);
             }
             
-            // 4. The Conveyor Belt: Loop through and upload each file
+            // 4. Batch Upload
             $uploadedCount = 0;
             foreach ($files as $file) {
                 $fileName = $file->getClientOriginalName();
-                
                 $s3Client->putObject([
                     'Bucket' => $bucketName,
                     'Key' => $fileName,
@@ -105,10 +115,13 @@ class S3Controller extends Controller
                 $uploadedCount++;
             }
 
-            return back()->with('success', "{$uploadedCount} files successfully uploaded! You have used " . number_format(($currentSize + $newFilesTotalSize) / 1048576, 2) . " MB of your quota.");
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true, 'message' => "{$uploadedCount} files uploaded successfully!"]);
+            }
+            return back()->with('success', "{$uploadedCount} files successfully uploaded!");
             
-        } catch (S3Exception $e) {
-            return back()->with('error', 'Failed to upload objects: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
 
