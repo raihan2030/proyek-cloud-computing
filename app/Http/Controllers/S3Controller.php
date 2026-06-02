@@ -54,23 +54,28 @@ class S3Controller extends Controller
         }
     }
 
-    // Feature 2: Upload an Object to a specific Bucket
+    // Feature 2: Batch Upload Objects (With 5GB Quota Enforcement)
     public function uploadObject(Request $request)
     {
         $request->validate([
             'bucket_name' => 'required|string',
-            'file' => 'required|file'
+            'files' => 'required|array',       // Ensures we received a list
+            'files.*' => 'required|file'       // Ensures every item in the list is a valid file
         ]);
 
         $bucketName = $request->bucket_name;
-        $file = $request->file('file');
-        $fileName = $file->getClientOriginalName(); 
-        $newFileSize = $file->getSize(); // Size of the incoming file in bytes
+        $files = $request->file('files');
+
+        // 1. Calculate the weight of ALL new files combined on the pallet
+        $newFilesTotalSize = 0;
+        foreach ($files as $file) {
+            $newFilesTotalSize += $file->getSize();
+        }
 
         try {
             $s3Client = Storage::disk('s3')->getClient();
             
-            // 1. Calculate Current Luggage Weight (Existing Bucket Size)
+            // 2. Calculate Current Luggage Weight (Existing Bucket Size)
             $objects = $s3Client->listObjectsV2(['Bucket' => $bucketName]);
             $currentSize = 0;
             
@@ -80,24 +85,30 @@ class S3Controller extends Controller
                 }
             }
 
-            // 2. The Limit Check (5GB in bytes = 5 * 1024 * 1024 * 1024)
+            // 3. The Limit Check (5GB)
             $limitBytes = 5368709120; 
             
-            if (($currentSize + $newFileSize) > $limitBytes) {
-                return back()->with('error', 'Upload Blocked: Storage Limit Exceeded! This file pushes you over your 5GB quota.');
+            if (($currentSize + $newFilesTotalSize) > $limitBytes) {
+                return back()->with('error', 'Upload Blocked: Adding these files exceeds your 5GB quota.');
             }
             
-            // 3. If it passes the scale, put it on the conveyor belt
-            $s3Client->putObject([
-                'Bucket' => $bucketName,
-                'Key' => $fileName,
-                'SourceFile' => $file->getPathname(),
-            ]);
+            // 4. The Conveyor Belt: Loop through and upload each file
+            $uploadedCount = 0;
+            foreach ($files as $file) {
+                $fileName = $file->getClientOriginalName();
+                
+                $s3Client->putObject([
+                    'Bucket' => $bucketName,
+                    'Key' => $fileName,
+                    'SourceFile' => $file->getPathname(),
+                ]);
+                $uploadedCount++;
+            }
 
-            return back()->with('success', "File '{$fileName}' successfully uploaded! You have used " . number_format(($currentSize + $newFileSize) / 1048576, 2) . " MB of your quota.");
+            return back()->with('success', "{$uploadedCount} files successfully uploaded! You have used " . number_format(($currentSize + $newFilesTotalSize) / 1048576, 2) . " MB of your quota.");
             
         } catch (S3Exception $e) {
-            return back()->with('error', 'Failed to upload object: ' . $e->getMessage());
+            return back()->with('error', 'Failed to upload objects: ' . $e->getMessage());
         }
     }
 
@@ -146,7 +157,11 @@ class S3Controller extends Controller
                 'Bucket' => $request->bucket_name,
                 'Key' => $request->file_key
             ]);
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true, 'message' => 'File deleted.']);
+            }
             return back()->with('success', "File '{$request->file_key}' deleted successfully.");
+
         } catch (\Exception $e) {
             return back()->with('error', 'Delete failed: ' . $e->getMessage());
         }

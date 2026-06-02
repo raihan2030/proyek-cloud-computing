@@ -86,8 +86,8 @@
                             <label class="block text-sm font-medium text-gray-700 mb-1">Target Bucket</label>
                             <input type="text" name="bucket_name" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 mb-3" placeholder="e.g., iaas-firas-123" required>
                             
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Select File</label>
-                            <input type="file" name="file" class="w-full border-gray-300 rounded-md shadow-sm bg-white mb-4 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Select Files</label>
+                            <input type="file" name="files[]" multiple class="w-full border-gray-300 rounded-md shadow-sm bg-white mb-4 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
                             
                             <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition shadow-sm">Upload to MiniStack</button>
                         </form>
@@ -122,7 +122,7 @@
                                                 <td class="px-4 py-3">{{ number_format($file['Size']) }}</td>
                                                 <td class="px-4 py-3 text-right flex justify-end gap-2">
                                                     <a href="{{ route('s3.downloadFile', ['bucket' => session('current_bucket'), 'key' => $file['Key']]) }}" class="text-blue-600 hover:underline">Download</a>
-                                                    <form action="{{ route('s3.deleteFile') }}" method="POST" onsubmit="return confirm('Delete this file?');">
+                                                    <form class="ajax-delete-form" action="{{ route('s3.deleteFile') }}" method="POST">
                                                         @csrf
                                                         <input type="hidden" name="bucket_name" value="{{ session('current_bucket') }}">
                                                         <input type="hidden" name="file_key" value="{{ $file['Key'] }}">
@@ -442,4 +442,49 @@
             
         </div>
     </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        // FEATURE 2: SEAMLESS AJAX DELETE
+        const deleteForms = document.querySelectorAll('.ajax-delete-form');
+        deleteForms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault(); // Stop page reload
+                
+                if (!confirm('Delete this file?')) return;
+
+                const formData = new FormData(form);
+                const tableRow = form.closest('tr'); // Find the specific row to hide
+
+                // Dim the row to show it's working
+                tableRow.style.opacity = '0.5';
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.success) {
+                        // Make the row disappear smoothly
+                        tableRow.style.display = 'none';
+                    } else {
+                        alert('Failed to delete file.');
+                        tableRow.style.opacity = '1';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    tableRow.style.opacity = '1';
+                });
+            });
+        });
+
+    });
+    </script>
+
 </x-app-layout>
