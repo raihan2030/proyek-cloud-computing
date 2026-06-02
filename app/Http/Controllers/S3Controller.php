@@ -94,20 +94,7 @@ class S3Controller extends Controller
                 'SourceFile' => $file->getPathname(),
             ]);
 
-            // If the request came from our JavaScript AJAX, return a JSON receipt
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => "File '{$fileName}' successfully uploaded!",
-                    'file' => [
-                        'Key' => $fileName,
-                        'Size' => $newFileSize
-                    ]
-                ]);
-            }
-
-            // Standard fallback if JavaScript fails
-            return back()->with('success', "File '{$fileName}' successfully uploaded!");
+            return back()->with('success', "File '{$fileName}' successfully uploaded! You have used " . number_format(($currentSize + $newFileSize) / 1048576, 2) . " MB of your quota.");
             
         } catch (S3Exception $e) {
             return back()->with('error', 'Failed to upload object: ' . $e->getMessage());
@@ -159,10 +146,8 @@ class S3Controller extends Controller
                 'Bucket' => $request->bucket_name,
                 'Key' => $request->file_key
             ]);
-            if ($request->wantsJson()) {
-                return response()->json(['success' => true, 'message' => 'File deleted.']);
-            }
-            return back()->with('success', "File '{$request->file_key}' deleted successfully.");        } catch (\Exception $e) {
+            return back()->with('success', "File '{$request->file_key}' deleted successfully.");
+        } catch (\Exception $e) {
             return back()->with('error', 'Delete failed: ' . $e->getMessage());
         }
     }
