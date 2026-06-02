@@ -30,25 +30,37 @@ class S3Controller extends Controller
             $s3Client = Storage::disk('s3')->getClient();
             $s3Client->createBucket(['Bucket' => $bucketName]);
             
+            // 1. Save to Provisioned Resources (The Infrastructure)
             DB::table('provisioned_resources')->insert([
                 'user_id' => $userId,
                 'plan_id' => $planId, 
                 'resource_type' => 'storage',
                 'instance_name' => $bucketName,
                 'ministack_resource_id' => $bucketName,
-                'configuration' => json_encode([
-                    'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
-                    'created_via' => 'web_dashboard',
-                    'quota_gb' => $plan->storage_quota_gb 
-                ]),
+                'configuration' => json_encode(['region' => 'us-east-1']),
                 'status' => 'running',
-                'hourly_cost' => round($hourlyCost, 5), // Save the accurate cost!
+                'hourly_cost' => round($hourlyCost, 5),
                 'rent_start_date' => now(),
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
 
-            return back()->with('success', "Bucket '{$bucketName}' provisioned on the '{$plan->plan_name}'!");
+            // 2. NEW: Save to User Subscriptions (The Billing/Quota)
+            DB::table('user_subscriptions')->insert([
+                'user_id' => $userId,
+                'plan_id' => $planId,
+                'ministack_bucket_name' => $bucketName,
+                'ministack_bucket_id' => $bucketName,
+                'remaining_storage_quota_gb' => $plan->storage_quota_gb,
+                'remaining_compute_quota' => $plan->compute_quota_vcpu ?? 0,
+                'remaining_vpc_quota' => $plan->network_quota_vpc ?? 0,
+                'subscription_status' => 'active',
+                'start_date' => now(),
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            return back()->with('success', "Bucket provisioned and Subscription Activated!");
             
         } catch (\Exception $e) {
             return back()->with('error', 'Error: ' . $e->getMessage());
@@ -204,6 +216,17 @@ class S3Controller extends Controller
                 ->update([
                     'status' => 'terminated',
                     'rent_end_date' => now(),
+                    'updated_at' => now()
+                ]);
+
+            // Terminate the User Subscription
+            DB::table('user_subscriptions')
+                ->where('ministack_bucket_name', $bucketName)
+                ->where('user_id', Auth::id())
+                ->where('subscription_status', 'active')
+                ->update([
+                    'subscription_status' => 'cancelled',
+                    'end_date' => now(),
                     'updated_at' => now()
                 ]);
 

@@ -178,7 +178,7 @@
                     <div class="mb-4">
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-sm font-medium text-gray-600">Capacity Used</span>
-                            <span class="text-sm font-bold text-gray-800">{{ number_format($usedGB ?? 0, 4) }} GB / {{ $totalGB ?? 5 }} GB ({{ number_format($percentage ?? 0, 0) }}%)</span>
+                            <span class="text-sm font-bold text-gray-800">{{ $displaySize }} / {{ $totalGB ?? 5 }} GB ({{ number_format($percentage ?? 0, 0) }}%)</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-2">
                             <div class="{{ ($percentage ?? 0) > 90 ? 'bg-red-600' : (($percentage ?? 0) > 75 ? 'bg-yellow-500' : 'bg-blue-600') }} h-2 rounded-full transition-all duration-500" style="width: {{ min($percentage ?? 0, 100) }}%"></div>

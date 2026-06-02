@@ -17,51 +17,48 @@ Route::get('/admin', function () {
 });
 
 Route::get('/dashboard', function () {
-    // 1. Check if user has an active bucket and find their plan
-    $activeResource = DB::table('provisioned_resources')
+    // 1. Check for the NEWEST active subscription
+    $activeSubscription = DB::table('user_subscriptions')
         ->where('user_id', Auth::id())
-        ->where('resource_type', 'storage')
-        ->where('status', 'running')
+        ->where('subscription_status', 'active')
+        ->whereNotNull('ministack_bucket_name')
+        ->latest('start_date') // Ensures we grab the most recent one!
         ->first();
 
-    $userBucket = $activeResource ? $activeResource->ministack_resource_id : null;
-    $usedGB = 0;
-    $totalGB = 5; // Default fallback
-
-    if ($activeResource) {
-        $plan = DB::table('subscription_plans')->where('id', $activeResource->plan_id)->first();
-        if ($plan) {
-            $totalGB = $plan->storage_quota_gb; // Dynamically set the Max Capacity!
-        }
-    }
+    $userBucket = $activeSubscription ? $activeSubscription->ministack_bucket_name : null;
+    $totalGB = $activeSubscription ? $activeSubscription->remaining_storage_quota_gb : 5;
+    $usedBytes = 0;
 
     // 2. Weigh the files
     if ($userBucket) {
         try {
             $s3Client = Storage::disk('s3')->getClient();
             $objects = $s3Client->listObjectsV2(['Bucket' => $userBucket]);
-            
-            $currentBytes = 0;
             if (!empty($objects['Contents'])) {
                 foreach ($objects['Contents'] as $object) {
-                    $currentBytes += $object['Size'];
+                    $usedBytes += $object['Size'];
                 }
             }
-            $usedGB = $currentBytes / (1024 * 1024 * 1024);
         } catch (\Exception $e) {}
     }
 
-    // 3. Fetch the storage plans from the seeder we ran earlier
-    $storagePlans = DB::table('subscription_plans')
-        ->where('service_type', 'iaas')
-        ->where('is_active', true)
-        ->get();
+    $usedGB = $usedBytes / (1024 * 1024 * 1024);
+    
+    // 3. User-Friendly Formatting (Show MB if less than 0.1 GB)
+    if ($usedGB > 0 && $usedGB < 0.1) {
+        $displaySize = round($usedBytes / (1024 * 1024), 2) . ' MB';
+    } else {
+        $displaySize = round($usedGB, 2) . ' GB';
+    }
+
+    $storagePlans = DB::table('subscription_plans')->where('service_type', 'iaas')->get();
 
     return view('dashboard', [
-        'usedGB' => round($usedGB, 4),
+        'usedGB' => $usedGB,
+        'displaySize' => $displaySize, // Pass the friendly string to the view
         'totalGB' => $totalGB,
         'percentage' => ($totalGB > 0) ? ($usedGB / $totalGB) * 100 : 0,
-        'storagePlans' => $storagePlans // Handing the menu to the view
+        'storagePlans' => $storagePlans
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
