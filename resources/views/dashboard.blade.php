@@ -81,13 +81,23 @@
                             <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                             Upload File to Bucket
                         </h4>
-                        <form action="{{ route('s3.uploadObject') }}" method="POST" enctype="multipart/form-data">
+                        <form id="upload-form" action="{{ route('s3.uploadObject') }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             <label class="block text-sm font-medium text-gray-700 mb-1">Target Bucket</label>
                             <input type="text" name="bucket_name" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 mb-3" placeholder="e.g., iaas-firas-123" required>
                             
                             <label class="block text-sm font-medium text-gray-700 mb-1">Select File</label>
                             <input type="file" name="file" class="w-full border-gray-300 rounded-md shadow-sm bg-white mb-4 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
+
+                            <div id="progress-container" class="hidden mb-4">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-xs font-medium text-blue-700">Uploading...</span>
+                                    <span id="progress-text" class="text-xs font-bold text-blue-700">0%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                    <div id="progress-bar" class="bg-blue-600 h-1.5 rounded-full transition-all duration-75" style="width: 0%"></div>
+                                </div>
+                            </div>
                             
                             <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition shadow-sm">Upload to MiniStack</button>
                         </form>
@@ -122,8 +132,7 @@
                                                 <td class="px-4 py-3">{{ number_format($file['Size']) }}</td>
                                                 <td class="px-4 py-3 text-right flex justify-end gap-2">
                                                     <a href="{{ route('s3.downloadFile', ['bucket' => session('current_bucket'), 'key' => $file['Key']]) }}" class="text-blue-600 hover:underline">Download</a>
-                                                    <form action="{{ route('s3.deleteFile') }}" method="POST" onsubmit="return confirm('Delete this file?');">
-                                                        @csrf
+                                                    <form class="ajax-delete-form" action="{{ route('s3.deleteFile') }}" method="POST">                                                        @csrf
                                                         <input type="hidden" name="bucket_name" value="{{ session('current_bucket') }}">
                                                         <input type="hidden" name="file_key" value="{{ $file['Key'] }}">
                                                         <button type="submit" class="text-red-600 hover:underline">Delete</button>
@@ -442,4 +451,99 @@
             
         </div>
     </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // FEATURE 1: AJAX UPLOAD WITH PROGRESS BAR
+        const uploadForm = document.getElementById('upload-form');
+        if (uploadForm) {
+            uploadForm.addEventListener('submit', function(e) {
+                e.preventDefault(); // Stop page reload
+                
+                const formData = new FormData(uploadForm);
+                const progressContainer = document.getElementById('progress-container');
+                const progressBar = document.getElementById('progress-bar');
+                const progressText = document.getElementById('progress-text');
+                const uploadBtn = document.getElementById('upload-btn');
+
+                // Show progress bar, disable button
+                progressContainer.classList.remove('hidden');
+                uploadBtn.disabled = true;
+                uploadBtn.innerText = 'Uploading...';
+                uploadBtn.classList.add('opacity-50');
+
+                // We use XMLHttpRequest instead of Fetch because Fetch doesn't support upload progress natively yet
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', uploadForm.action, true);
+                xhr.setRequestHeader('Accept', 'application/json');
+
+                // Listen to the upload progress
+                xhr.upload.onprogress = function(event) {
+                    if (event.lengthComputable) {
+                        let percentComplete = Math.round((event.loaded / event.total) * 100);
+                        progressBar.style.width = percentComplete + '%';
+                        progressText.innerText = percentComplete + '%';
+                    }
+                };
+
+                // When upload finishes
+                xhr.onload = function() {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        // Success! Refresh the page to show the new file and updated capacity
+                        window.location.reload(); 
+                    } else {
+                        alert('Upload failed or quota exceeded.');
+                        progressContainer.classList.add('hidden');
+                        uploadBtn.disabled = false;
+                        uploadBtn.innerText = 'Upload to MiniStack';
+                        uploadBtn.classList.remove('opacity-50');
+                    }
+                };
+
+                xhr.send(formData);
+            });
+        }
+
+        // FEATURE 2: SEAMLESS AJAX DELETE
+        const deleteForms = document.querySelectorAll('.ajax-delete-form');
+        deleteForms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault(); // Stop page reload
+                
+                if (!confirm('Delete this file?')) return;
+
+                const formData = new FormData(form);
+                const tableRow = form.closest('tr'); // Find the specific row to hide
+
+                // Dim the row to show it's working
+                tableRow.style.opacity = '0.5';
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.success) {
+                        // Make the row disappear smoothly
+                        tableRow.style.display = 'none';
+                    } else {
+                        alert('Failed to delete file.');
+                        tableRow.style.opacity = '1';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    tableRow.style.opacity = '1';
+                });
+            });
+        });
+
+    });
+    </script>
+
 </x-app-layout>
