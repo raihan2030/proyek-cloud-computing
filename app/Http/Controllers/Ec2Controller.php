@@ -84,8 +84,7 @@ class Ec2Controller extends Controller
 
             $instanceId = $result['Instances'][0]['InstanceId'] ?? 'i-unknown';
 
-            // 1. Save to Provisioned Resources (The Infrastructure)
-            DB::table('provisioned_resources')->insert([
+            $resourceId = DB::table('provisioned_resources')->insert([
                 'user_id'               => $userId,
                 'plan_id'               => $planId,
                 'resource_type'         => 'compute',
@@ -103,22 +102,16 @@ class Ec2Controller extends Controller
                 'updated_at'      => now(),
             ]);
 
-            // 2. Save to User Subscriptions (The Billing/Quota)
-            DB::table('user_subscriptions')->insert([
-                'user_id'                    => $userId,
-                'plan_id'                    => $planId,
-                'ministack_instance_id'      => $instanceId,
-                'remaining_storage_quota_gb' => 0,
-                'remaining_compute_quota'    => $plan->compute_quota_vcpu ?? 1,
-                'remaining_vpc_quota'        => 0,
-                'subscription_status'        => 'active',
-                'start_date'                 => now(),
-                'created_at'                 => now(),
-                'updated_at'                 => now(),
+            DB::table('activity_logs')->insert([
+                'user_id'     => $userId,
+                'resource_id' => $resourceId,
+                'action_type' => 'create',
+                'description' => "Launched EC2 instance {$instanceName}",
+                'metadata'    => json_encode(['instance_id' => $instanceId, 'instance_type' => $instanceType]),
+                'created_at'  => now(),
             ]);
 
             return back()->with('success', "EC2 Instance '{$instanceName}' launched as {$instanceId}!");
-
         } catch (\Exception $e) {
             return back()->with('error', 'EC2 Launch Error: ' . $e->getMessage());
         }
@@ -162,7 +155,6 @@ class Ec2Controller extends Controller
             }
 
             return back()->with('instances', $instances);
-
         } catch (\Exception $e) {
             if ($request->wantsJson()) {
                 return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
@@ -195,7 +187,6 @@ class Ec2Controller extends Controller
                 return response()->json(['success' => true, 'message' => "Instance {$instanceId} stopped."]);
             }
             return back()->with('success', "Instance '{$instanceId}' stopped.");
-
         } catch (\Exception $e) {
             if ($request->wantsJson()) {
                 return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
@@ -228,7 +219,6 @@ class Ec2Controller extends Controller
                 return response()->json(['success' => true, 'message' => "Instance {$instanceId} started."]);
             }
             return back()->with('success', "Instance '{$instanceId}' started.");
-
         } catch (\Exception $e) {
             if ($request->wantsJson()) {
                 return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
@@ -250,32 +240,39 @@ class Ec2Controller extends Controller
             $ec2 = $this->getEc2Client();
             $ec2->terminateInstances(['InstanceIds' => [$instanceId]]);
 
-            // 2. Update provisioned resource (Stop billing)
-            DB::table('provisioned_resources')
+            // 2. Cari resource ini di database untuk mendapatkan ID-nya
+            $resource = DB::table('provisioned_resources')
                 ->where('ministack_resource_id', $instanceId)
                 ->where('user_id', Auth::id())
-                ->update([
+                ->first();
+
+            if ($resource) {
+                // 3. LOGIKA BARU: Hapus Kredensial API yang terikat dengan EC2 ini
+                DB::table('access_credentials')
+                    ->where('provisioned_id', $resource->id)
+                    ->delete();
+
+                // 4. Update provisioned resource (Stop billing)
+                DB::table('provisioned_resources')->where('id', $resource->id)->update([
                     'status'        => 'terminated',
                     'rent_end_date' => now(),
                     'updated_at'    => now(),
                 ]);
 
-            // 3. Cancel the User Subscription
-            DB::table('user_subscriptions')
-                ->where('ministack_instance_id', $instanceId)
-                ->where('user_id', Auth::id())
-                ->where('subscription_status', 'active')
-                ->update([
-                    'subscription_status' => 'cancelled',
-                    'end_date'            => now(),
-                    'updated_at'          => now(),
+                // 5. Catat log aktivitas
+                DB::table('activity_logs')->insert([
+                    'user_id'     => Auth::id(),
+                    'resource_id' => $resource->id,
+                    'action_type' => 'delete',
+                    'description' => "Terminated EC2 instance {$instanceId} and revoked its credentials",
+                    'created_at'  => now(),
                 ]);
+            }
 
             if ($request->wantsJson()) {
-                return response()->json(['success' => true, 'message' => "Instance {$instanceId} terminated. Billing stopped."]);
+                return response()->json(['success' => true, 'message' => "Instance {$instanceId} terminated. Billing and credentials stopped."]);
             }
-            return back()->with('success', "Instance '{$instanceId}' terminated. Billing has been stopped.");
-
+            return back()->with('success', "Instance '{$instanceId}' terminated. Billing and associated credentials have been permanently removed.");
         } catch (\Exception $e) {
             if ($request->wantsJson()) {
                 return response()->json(['success' => false, 'message' => $e->getMessage()], 500);

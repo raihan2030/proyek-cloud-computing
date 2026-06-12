@@ -13,8 +13,11 @@ return new class extends Migration
     {
         Schema::create('access_credentials', function (Blueprint $table) {
             $table->id();
+
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->string('access_key');
+            $table->foreignId('provisioned_id')->constrained('provisioned_resources')->cascadeOnDelete();
+
+            $table->string('access_key')->unique();
             $table->text('secret_key_encrypted');
             $table->boolean('is_active')->default(true);
             $table->timestamp('last_used_at')->nullable();

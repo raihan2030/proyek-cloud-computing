@@ -13,11 +13,13 @@ return new class extends Migration
     {
         Schema::create('provisioned_resources', function (Blueprint $table) {
             $table->id();
+
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('plan_id')->constrained('subscription_plans')->cascadeOnDelete();
+            
             $table->enum('resource_type', ['compute', 'storage', 'network']);
             $table->string('instance_name');
-            $table->string('ministack_resource_id');
+            $table->string('ministack_resource_id')->unique();
             $table->json('configuration');
             $table->enum('status', ['running', 'stopped', 'terminated']);
             $table->decimal('hourly_cost', 10, 4);

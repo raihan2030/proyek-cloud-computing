@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('subscription_plans', function (Blueprint $table) {
             $table->id();
+
+            $table->foreignId('service_id')->constrained('iaas_services')->cascadeOnDelete();
+
             $table->string('plan_name');
-            $table->enum('service_type', ['iaas', 'paas', 'saas']);
             $table->integer('storage_quota_gb');
             $table->integer('compute_quota_vcpu');
             $table->integer('network_quota_vpc');

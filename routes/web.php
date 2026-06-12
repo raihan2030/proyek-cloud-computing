@@ -27,32 +27,35 @@ Route::get('/dashboard', function () {
         ->where('user_id', $userId)
         ->count();
 
-    $activeServices = DB::table('user_subscriptions')
+    // Active Services sekarang dihitung dari provisioned_resources yang statusnya running
+    $activeServices = DB::table('provisioned_resources')
         ->where('user_id', $userId)
-        ->where('subscription_status', 'active')
+        ->where('status', 'running')
         ->count();
 
     // Calculate the current monthly bill based on ACTIVE services (Run Rate)
-    $monthlyBill = DB::table('user_subscriptions')
-        ->join('subscription_plans', 'user_subscriptions.plan_id', '=', 'subscription_plans.id')
-        ->where('user_subscriptions.user_id', $userId)
-        ->where('user_subscriptions.subscription_status', 'active')
+    $monthlyBill = DB::table('provisioned_resources')
+        ->join('subscription_plans', 'provisioned_resources.plan_id', '=', 'subscription_plans.id')
+        ->where('provisioned_resources.user_id', $userId)
+        ->where('provisioned_resources.status', 'running')
         ->sum('subscription_plans.monthly_price');
 
-    // 2. Fetch ALL active subscriptions for the user
-    $activeSubscriptions = DB::table('user_subscriptions')
-        ->where('user_id', Auth::id())
-        ->where('subscription_status', 'active')
-        ->whereNotNull('ministack_bucket_name')
-        ->orderBy('start_date', 'desc')
+    // 2. Fetch ALL active STORAGE subscriptions for the user
+    $activeStorage = DB::table('provisioned_resources')
+        ->join('subscription_plans', 'provisioned_resources.plan_id', '=', 'subscription_plans.id')
+        ->where('provisioned_resources.user_id', $userId)
+        ->where('provisioned_resources.resource_type', 'storage')
+        ->where('provisioned_resources.status', 'running')
+        ->select('provisioned_resources.*', 'subscription_plans.storage_quota_gb')
+        ->orderBy('provisioned_resources.rent_start_date', 'desc')
         ->get();
 
     $bucketsData = [];
 
     // 3. Loop through every bucket and weigh its contents
-    foreach ($activeSubscriptions as $sub) {
-        $bucketName = $sub->ministack_bucket_name;
-        $totalGB = $sub->remaining_storage_quota_gb;
+    foreach ($activeStorage as $storage) {
+        $bucketName = $storage->ministack_resource_id;
+        $totalGB = $storage->storage_quota_gb;
         $usedBytes = 0;
 
         try {
@@ -92,20 +95,35 @@ Route::get('/dashboard', function () {
         ];
     }
 
+    // 4. Fetch Storage Plans (menggunakan join ke iaas_services)
     $storagePlans = DB::table('subscription_plans')
-        ->where('service_type', 'iaas')
-        ->where('compute_quota_vcpu', 0)
+        ->join('iaas_services', 'subscription_plans.service_id', '=', 'iaas_services.id')
+        ->where('iaas_services.service_category', 'Storage')
+        ->select('subscription_plans.*')
         ->get();
 
-    $userCredential = DB::table('access_credentials')
-        ->where('user_id', Auth::id())
-        ->where('is_active', true)
-        ->first();
+    // Ambil SEMUA kredensial aktif beserta nama resource-nya
+    $userCredentials = DB::table('access_credentials')
+        ->join('provisioned_resources', 'access_credentials.provisioned_id', '=', 'provisioned_resources.id')
+        ->where('access_credentials.user_id', Auth::id())
+        ->where('access_credentials.is_active', true)
+        ->select('access_credentials.*', 'provisioned_resources.instance_name', 'provisioned_resources.resource_type')
+        ->get();
 
-    // 5. Fetch EC2 Compute Data
+    // Cari resource aktif milik user yang BELUM memiliki kredensial aktif (untuk dropdown menu)
+    $availableResourcesForKey = DB::table('provisioned_resources')
+        ->where('user_id', Auth::id())
+        ->where('status', 'running')
+        ->whereNotIn('id', function($query) {
+            $query->select('provisioned_id')->from('access_credentials')->where('is_active', true);
+        })
+        ->get();
+
+    // 5. Fetch EC2 Compute Plans (menggunakan join ke iaas_services)
     $computePlans = DB::table('subscription_plans')
-        ->where('service_type', 'iaas')
-        ->where('compute_quota_vcpu', '>', 0)
+        ->join('iaas_services', 'subscription_plans.service_id', '=', 'iaas_services.id')
+        ->where('iaas_services.service_category', 'Compute')
+        ->select('subscription_plans.*')
         ->get();
 
     $activeInstances = DB::table('provisioned_resources')
@@ -136,8 +154,9 @@ Route::get('/dashboard', function () {
         'bucketsData'    => $bucketsData,
         'storagePlans'   => $storagePlans,
         'computePlans'   => $computePlans,
-        'instancesData'  => $instancesData,
-        'userCredential' => $userCredential
+        'instancesData'  => $instancesData, // Menghapus typo koma ganda yang ada sebelumnya
+        'userCredentials' => $userCredentials, // Ubah dari userCredential menjadi ini
+        'availableResourcesForKey' => $availableResourcesForKey // Tambahkan ini
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 

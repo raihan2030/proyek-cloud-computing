@@ -31,34 +31,28 @@ class S3Controller extends Controller
             $s3Client = Storage::disk('s3')->getClient();
             $s3Client->createBucket(['Bucket' => $bucketName]);
 
-            // 1. Save to Provisioned Resources (The Infrastructure)
-            DB::table('provisioned_resources')->insert([
-                'user_id' => $userId,
-                'plan_id' => $planId,
-                'resource_type' => 'storage',
-                'instance_name' => $bucketName,
+            // 1. Save to Provisioned Resources (Gunakan insertGetId dan tampung di $resourceId)
+            $resourceId = DB::table('provisioned_resources')->insertGetId([
+                'user_id'               => $userId,
+                'plan_id'               => $planId,
+                'resource_type'         => 'storage',
+                'instance_name'         => $bucketName,
                 'ministack_resource_id' => $bucketName,
-                'configuration' => json_encode(['region' => 'us-east-1']),
-                'status' => 'running',
-                'hourly_cost' => round($hourlyCost, 5),
-                'rent_start_date' => now(),
-                'created_at' => now(),
-                'updated_at' => now()
+                'configuration'         => json_encode(['region' => 'us-east-1']),
+                'status'                => 'running',
+                'hourly_cost'           => round($hourlyCost, 5),
+                'rent_start_date'       => now(),
+                'created_at'            => now(),
+                'updated_at'            => now()
             ]);
 
-            // 2. NEW: Save to User Subscriptions (The Billing/Quota)
-            DB::table('user_subscriptions')->insert([
-                'user_id' => $userId,
-                'plan_id' => $planId,
-                'ministack_bucket_name' => $bucketName,
-                'ministack_bucket_id' => $bucketName,
-                'remaining_storage_quota_gb' => $plan->storage_quota_gb,
-                'remaining_compute_quota' => $plan->compute_quota_vcpu ?? 0,
-                'remaining_vpc_quota' => $plan->network_quota_vpc ?? 0,
-                'subscription_status' => 'active',
-                'start_date' => now(),
-                'created_at' => now(),
-                'updated_at' => now()
+            // 2. Tambahkan pencatatan ke activity_logs (Sesuai ERD)
+            DB::table('activity_logs')->insert([
+                'user_id'     => $userId,
+                'resource_id' => $resourceId,
+                'action_type' => 'create',
+                'description' => "Provisioned S3 Bucket {$bucketName}",
+                'created_at'  => now(),
             ]);
 
             return back()->with('success', "Bucket provisioned and Subscription Activated!");
@@ -219,28 +213,36 @@ class S3Controller extends Controller
             // 1. Demolish the locker in MiniStack
             $s3Client->deleteBucket(['Bucket' => $bucketName]);
 
-            // 2. Update the Database Clipboard (Stop billing)
-            DB::table('provisioned_resources')
+            // 2. Cari resource ini di database untuk mendapatkan ID-nya
+            $resource = DB::table('provisioned_resources')
                 ->where('ministack_resource_id', $bucketName)
                 ->where('user_id', Auth::id())
-                ->update([
+                ->first();
+
+            if ($resource) {
+                // 3. LOGIKA BARU: Hapus Kredensial API yang terikat dengan Bucket ini
+                DB::table('access_credentials')
+                    ->where('provisioned_id', $resource->id)
+                    ->delete();
+
+                // 4. Update the Database Clipboard (Stop billing)
+                DB::table('provisioned_resources')->where('id', $resource->id)->update([
                     'status' => 'terminated',
                     'rent_end_date' => now(),
                     'updated_at' => now()
                 ]);
 
-            // Terminate the User Subscription
-            DB::table('user_subscriptions')
-                ->where('ministack_bucket_name', $bucketName)
-                ->where('user_id', Auth::id())
-                ->where('subscription_status', 'active')
-                ->update([
-                    'subscription_status' => 'cancelled',
-                    'end_date' => now(),
-                    'updated_at' => now()
+                // 5. Log activity penghapusan
+                DB::table('activity_logs')->insert([
+                    'user_id'     => Auth::id(),
+                    'resource_id' => $resource->id,
+                    'action_type' => 'delete',
+                    'description' => "Deleted S3 Bucket {$bucketName} and revoked its credentials",
+                    'created_at'  => now(),
                 ]);
+            }
 
-            return back()->with('success', "Bucket '{$bucketName}' terminated. Billing has been stopped.");
+            return back()->with('success', "Bucket '{$bucketName}' terminated. Billing and associated credentials have been permanently removed.");
         } catch (\Exception $e) {
             return back()->with('error', 'Termination failed: ' . $e->getMessage());
         }
@@ -248,53 +250,69 @@ class S3Controller extends Controller
 
     public function generateCredentials(Request $request)
     {
-        $userId = Auth::id();
+        // Validasi input dari form dropdown di dashboard
+        $request->validate([
+            'provisioned_id' => 'required|exists:provisioned_resources,id'
+        ]);
 
-        // 1. Cek apakah user sudah punya kunci
-        if (DB::table('access_credentials')->where('user_id', $userId)->where('is_active', true)->exists()) {
-            return back()->with('error', 'Anda sudah memiliki kredensial API aktif.');
+        $userId = Auth::id();
+        $provisionedId = $request->provisioned_id;
+
+        // 1. Cek kepemilikan resource (Pastikan ini milik user yang sedang login)
+        $resource = DB::table('provisioned_resources')
+            ->where('id', $provisionedId)
+            ->where('user_id', $userId)
+            ->first();
+
+        if (!$resource) {
+            return back()->with('error', 'Gagal: Resource tidak ditemukan atau bukan milik Anda.');
+        }
+
+        // 2. Cek apakah resource INI sudah punya kredensial aktif
+        if (DB::table('access_credentials')->where('provisioned_id', $provisionedId)->where('is_active', true)->exists()) {
+            return back()->with('error', "Resource {$resource->instance_name} sudah memiliki kredensial API aktif.");
         }
 
         try {
-            // 2. Koneksikan IAM Client ke MiniStack Anda
-            $iamClient = new IamClient([
+            // 3. Koneksikan IAM Client ke MiniStack
+            $iamClient = new \Aws\Iam\IamClient([
                 'version' => 'latest',
                 'region'  => env('AWS_DEFAULT_REGION', 'us-east-1'),
-                'endpoint' => env('AWS_ENDPOINT'), // Akan mengambil port 4566 dari .env
+                'endpoint' => env('AWS_ENDPOINT'),
                 'credentials' => [
-                    'key'    => env('AWS_ACCESS_KEY_ID'),     // 'test'
-                    'secret' => env('AWS_SECRET_ACCESS_KEY'), // 'test'
+                    'key'    => env('AWS_ACCESS_KEY_ID'),
+                    'secret' => env('AWS_SECRET_ACCESS_KEY'),
                 ],
             ]);
 
-            // 3. Buat nama user yang unik
-            $iamUsername = 'ministack_user_' . $userId;
+            // 4. Buat nama user IAM yang unik spesifik untuk resource ini
+            $iamUsername = 'usr_' . $userId . '_res_' . $provisionedId . '_' . time();
 
-            // 4. Perintahkan MiniStack membuat User (Pasti berhasil karena didukung!)
+            // 5. Perintahkan MiniStack membuat User
             $iamClient->createUser([
                 'UserName' => $iamUsername
             ]);
 
-            // 5. Perintahkan MiniStack membuatkan Kunci untuk User tersebut
+            // 6. Perintahkan MiniStack membuatkan Kunci API
             $result = $iamClient->createAccessKey([
                 'UserName' => $iamUsername
             ]);
 
-            // 6. Tangkap kuncinya
             $accessKey = $result['AccessKey']['AccessKeyId'];
             $secretKey = $result['AccessKey']['SecretAccessKey'];
 
-            // 7. Simpan ke database Anda
+            // 7. Simpan ke database
             DB::table('access_credentials')->insert([
-                'user_id' => $userId,
-                'access_key' => $accessKey,
+                'user_id'              => $userId,
+                'provisioned_id'       => $provisionedId,
+                'access_key'           => $accessKey,
                 'secret_key_encrypted' => encrypt($secretKey),
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now()
+                'is_active'            => true,
+                'created_at'           => now(),
+                'updated_at'           => now()
             ]);
 
-            return back()->with('success', 'Akses Kredensial API Berhasil Dibuat Langsung via MiniStack!');
+            return back()->with('success', "Kredensial API berhasil dibuat khusus untuk resource: {$resource->instance_name}");
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal memproses kredensial: ' . $e->getMessage());
         }

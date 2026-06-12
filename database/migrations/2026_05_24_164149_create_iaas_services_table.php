@@ -11,8 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('user_subscriptions', function (Blueprint $table) {
-            $table->string('ministack_instance_id')->nullable()->after('ministack_bucket_id');
+        Schema::create('iaas_services', function (Blueprint $table) {
+            $table->id();
+            $table->string('service_name')->unique();
+            $table->string('service_category');
+            $table->boolean('is_available')->default(true);
+            $table->timestamps();
         });
     }
 
@@ -21,8 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('user_subscriptions', function (Blueprint $table) {
-            $table->dropColumn('ministack_instance_id');
-        });
+        Schema::dropIfExists('iaas_services');
     }
 };

@@ -4,33 +4,66 @@
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                 <div class="p-6 text-gray-900">
-                    <h3 class="text-lg font-bold mb-4">Akses Kredensial API (Programmatic Access)</h3>
+                    <h3 class="text-lg font-bold mb-4">Akses Kredensial API per Layanan</h3>
 
-                    @if ($userCredential)
-                        <div class="bg-gray-100 p-4 rounded border">
-                            <div class="mb-2">
-                                <span class="block font-semibold">Access Key:</span>
-                                <code
-                                    class="bg-white px-2 py-1 rounded text-blue-600">{{ $userCredential->access_key }}</code>
-                            </div>
-                            <div>
-                                <span class="block font-semibold">Secret Key:</span>
-                                <code
-                                    class="bg-white px-2 py-1 rounded text-red-600">{{ decrypt($userCredential->secret_key_encrypted) }}</code>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-2">*Gunakan kredensial di atas untuk login via AWS CLI
-                                atau aplikasi pihak ketiga.</p>
+                    @if ($userCredentials->count() > 0)
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            @foreach ($userCredentials as $cred)
+                                <div class="bg-gray-50 p-4 rounded border border-gray-200 shadow-sm relative">
+                                    <div
+                                        class="absolute top-3 right-3 text-xs font-bold text-white px-2 py-1 rounded {{ $cred->resource_type == 'storage' ? 'bg-blue-500' : 'bg-orange-500' }}">
+                                        {{ strtoupper($cred->resource_type) }}
+                                    </div>
+                                    <h4 class="font-bold text-gray-800 mb-3">{{ $cred->instance_name }}</h4>
+
+                                    <div class="mb-2 text-sm">
+                                        <span class="block font-semibold text-gray-600">Access Key:</span>
+                                        <code
+                                            class="bg-white px-2 py-1 rounded border text-blue-600 block w-full truncate">{{ $cred->access_key }}</code>
+                                    </div>
+                                    <div class="text-sm">
+                                        <span class="block font-semibold text-gray-600">Secret Key:</span>
+                                        <code
+                                            class="bg-white px-2 py-1 rounded border text-red-600 block w-full truncate">{{ decrypt($cred->secret_key_encrypted) }}</code>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
                     @else
-                        <p class="mb-4 text-gray-600">Anda belum membuat akses kredensial. Anda membutuhkannya untuk
-                            mengakses layanan IaaS dari luar web.</p>
-                        <form action="{{ route('s3.generateCredentials') }}" method="POST">
+                        <p class="mb-4 text-gray-600 italic border-l-4 border-gray-400 pl-4">Anda belum memiliki kunci
+                            API untuk layanan apa pun.</p>
+                    @endif
+
+                    <hr class="my-4 border-gray-200">
+
+                    <h4 class="font-semibold text-gray-700 mb-2">Generate Kredensial Baru</h4>
+                    @if ($availableResourcesForKey->count() > 0)
+                        <form action="{{ route('s3.generateCredentials') }}" method="POST"
+                            class="flex flex-col md:flex-row gap-3 items-end">
                             @csrf
+                            <div class="w-full md:w-1/2">
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Pilih Layanan Aktif</label>
+                                <select name="provisioned_id"
+                                    class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    required>
+                                    <option value="" disabled selected>-- Pilih Resource --</option>
+                                    @foreach ($availableResourcesForKey as $res)
+                                        <option value="{{ $res->id }}">
+                                            [{{ strtoupper($res->resource_type) }}] - {{ $res->instance_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
                             <button type="submit"
-                                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                                Request Access Key ke MiniStack
+                                class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded w-full md:w-auto shadow-sm transition">
+                                Request Access Key
                             </button>
                         </form>
+                    @else
+                        <div class="bg-yellow-50 text-yellow-700 p-3 rounded text-sm border border-yellow-200">
+                            Semua layanan Anda saat ini sudah memiliki Kredensial API, atau Anda belum memiliki layanan
+                            aktif sama sekali.
+                        </div>
                     @endif
                 </div>
             </div>
@@ -76,7 +109,8 @@
                         <div>
                             <p class="text-sm font-medium text-black-500 bold uppercase tracking-wider">Monthly Spend
                             </p>
-                            <h4 class="text-3xl font-bold text-gray-800 mt-1">${{ number_format($monthlyBill, 2) }}</h4>
+                            <h4 class="text-3xl font-bold text-gray-800 mt-1">${{ number_format($monthlyBill, 2) }}
+                            </h4>
                         </div>
                         <div class="p-3 bg-amber-50 text-amber-600 rounded-full">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,12 +129,13 @@
                     <h3 class="text-lg font-semibold text-gray-800">S3 Storage Management (Test Workspace)</h3>
                 </div>
 
-                @if (session('success'))
+                @if (session('success') && preg_match('/Bucket|file|Kredensial|Resource/i', session('success')))
                     <div class="mb-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
                         {{ session('success') }}</div>
                 @endif
-                @if (session('error'))
-                    <div class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">{{ session('error') }}
+                @if (session('error') && preg_match('/Bucket|file|Kredensial|Resource/i', session('error')))
+                    <div class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                        {{ session('error') }}
                     </div>
                 @endif
 
@@ -128,7 +163,8 @@
                                 <option value="" disabled selected>Select a plan...</option>
                                 @foreach ($storagePlans as $plan)
                                     <option value="{{ $plan->id }}">{{ $plan->plan_name }}
-                                        ({{ $plan->storage_quota_gb }}GB) - ${{ $plan->monthly_price }}/mo</option>
+                                        ({{ $plan->storage_quota_gb }}GB)
+                                        - ${{ $plan->monthly_price }}/mo</option>
                                 @endforeach
                             </select>
 
@@ -138,9 +174,10 @@
                         </form>
                     </div>
 
-                    <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 hover:shadow-md transition">
+                    <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 hover:shadow-md transition" id="upload-form">
                         <h4 class="font-medium text-gray-800 mb-4 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
                             </svg>
@@ -312,46 +349,67 @@
                     <h3 class="text-lg font-semibold text-gray-800">EC2 Compute Management</h3>
                 </div>
 
-                @if(session('success') && str_contains(session('success'), 'EC2'))
-                    <div class="mb-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">{{ session('success') }}</div>
+                @if (session('success') && preg_match('/EC2|Instance/i', session('success')))
+                    <div class="mb-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
+                        {{ session('success') }}</div>
                 @endif
-                @if(session('error') && str_contains(session('error'), 'EC2'))
-                    <div class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">{{ session('error') }}</div>
+                @if (session('error') && preg_match('/EC2|Instance/i', session('error')))
+                    <div class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                        {{ session('error') }}</div>
                 @endif
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {{-- Launch Instance Form --}}
                     <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 hover:shadow-md transition">
                         <h4 class="font-medium text-gray-800 mb-4 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
                             Launch New Instance
                         </h4>
                         <form action="{{ route('ec2.launch') }}" method="POST">
                             @csrf
                             <label class="block text-sm font-medium text-gray-700 mb-1">Instance Name</label>
                             <p class="text-xs text-gray-500 mb-2">Letters, numbers, dots, hyphens, underscores.</p>
-                            <input type="text" name="instance_name" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 mb-4" placeholder="e.g., web-server-01" required>
+                            <input type="text" name="instance_name"
+                                class="w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 mb-4"
+                                placeholder="e.g., web-server-01" required>
 
                             <label class="block text-sm font-medium text-gray-700 mb-1">Compute Plan</label>
-                            <select name="plan_id" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 mb-4" required>
+                            <select name="plan_id"
+                                class="w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 mb-4"
+                                required>
                                 <option value="" disabled selected>Select a plan...</option>
-                                @foreach($computePlans as $plan)
-                                    <option value="{{ $plan->id }}">{{ $plan->plan_name }} ({{ $plan->compute_quota_vcpu }} vCPU) - ${{ $plan->monthly_price }}/mo</option>
+                                @foreach ($computePlans as $plan)
+                                    <option value="{{ $plan->id }}">{{ $plan->plan_name }}
+                                        ({{ $plan->compute_quota_vcpu }} vCPU) - ${{ $plan->monthly_price }}/mo
+                                    </option>
                                 @endforeach
                             </select>
 
-                            <button type="submit" class="w-full bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition shadow-sm">Launch in MiniStack</button>
+                            <button type="submit"
+                                class="w-full bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition shadow-sm">Launch
+                                in MiniStack</button>
                         </form>
                     </div>
 
                     {{-- Instance Explorer --}}
                     <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 hover:shadow-md transition">
                         <h4 class="font-medium text-gray-800 mb-4 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
                             Instance Explorer
                         </h4>
 
-                        <button type="button" id="ec2-refresh-btn" class="w-full bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition mb-4">Refresh Instances</button>
+                        <button type="button" id="ec2-refresh-btn"
+                            class="w-full bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition mb-4">Refresh
+                            Instances</button>
 
                         <div id="ec2-instance-container" class="bg-white border rounded-md overflow-hidden">
                             <table class="w-full text-sm text-left text-gray-500">
@@ -365,45 +423,64 @@
                                     </tr>
                                 </thead>
                                 <tbody id="ec2-instance-body">
-                                    @if(count($instancesData) > 0)
-                                        @foreach($instancesData as $inst)
+                                    @if (count($instancesData) > 0)
+                                        @foreach ($instancesData as $inst)
                                             <tr class="border-b">
-                                                <td class="px-3 py-3 font-medium text-gray-900">{{ $inst['instance_name'] }}</td>
-                                                <td class="px-3 py-3 font-mono text-xs">{{ $inst['instance_id'] }}</td>
+                                                <td class="px-3 py-3 font-medium text-gray-900">
+                                                    {{ $inst['instance_name'] }}</td>
+                                                <td class="px-3 py-3 font-mono text-xs">{{ $inst['instance_id'] }}
+                                                </td>
                                                 <td class="px-3 py-3">{{ $inst['instance_type'] }}</td>
                                                 <td class="px-3 py-3">
-                                                    @if($inst['status'] === 'running')
-                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">● running</span>
+                                                    @if ($inst['status'] === 'running')
+                                                        <span
+                                                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">●
+                                                            running</span>
                                                     @else
-                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">● stopped</span>
+                                                        <span
+                                                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">●
+                                                            stopped</span>
                                                     @endif
                                                 </td>
                                                 <td class="px-3 py-3 text-right">
                                                     <div class="flex justify-end gap-1">
-                                                        @if($inst['status'] === 'running')
-                                                            <form class="ec2-action-form" action="{{ route('ec2.stop') }}" method="POST">
+                                                        @if ($inst['status'] === 'running')
+                                                            <form class="ec2-action-form"
+                                                                action="{{ route('ec2.stop') }}" method="POST">
                                                                 @csrf
-                                                                <input type="hidden" name="instance_id" value="{{ $inst['instance_id'] }}">
-                                                                <button type="submit" class="text-yellow-600 hover:underline text-xs">Stop</button>
+                                                                <input type="hidden" name="instance_id"
+                                                                    value="{{ $inst['instance_id'] }}">
+                                                                <button type="submit"
+                                                                    class="text-yellow-600 hover:underline text-xs">Stop</button>
                                                             </form>
                                                         @else
-                                                            <form class="ec2-action-form" action="{{ route('ec2.start') }}" method="POST">
+                                                            <form class="ec2-action-form"
+                                                                action="{{ route('ec2.start') }}" method="POST">
                                                                 @csrf
-                                                                <input type="hidden" name="instance_id" value="{{ $inst['instance_id'] }}">
-                                                                <button type="submit" class="text-green-600 hover:underline text-xs">Start</button>
+                                                                <input type="hidden" name="instance_id"
+                                                                    value="{{ $inst['instance_id'] }}">
+                                                                <button type="submit"
+                                                                    class="text-green-600 hover:underline text-xs">Start</button>
                                                             </form>
                                                         @endif
-                                                        <form class="ec2-action-form" action="{{ route('ec2.terminate') }}" method="POST" onsubmit="return confirm('WARNING: Terminate instance {{ $inst['instance_id'] }}? Billing will stop and this cannot be undone.');">
+                                                        <form class="ec2-action-form"
+                                                            action="{{ route('ec2.terminate') }}" method="POST"
+                                                            onsubmit="return confirm('WARNING: Terminate instance {{ $inst['instance_id'] }}? Billing will stop and this cannot be undone.');">
                                                             @csrf
-                                                            <input type="hidden" name="instance_id" value="{{ $inst['instance_id'] }}">
-                                                            <button type="submit" class="text-red-600 hover:underline text-xs">Terminate</button>
+                                                            <input type="hidden" name="instance_id"
+                                                                value="{{ $inst['instance_id'] }}">
+                                                            <button type="submit"
+                                                                class="text-red-600 hover:underline text-xs">Terminate</button>
                                                         </form>
                                                     </div>
                                                 </td>
                                             </tr>
                                         @endforeach
                                     @else
-                                        <tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">No active instances. Launch one to get started.</td></tr>
+                                        <tr>
+                                            <td colspan="5" class="px-4 py-4 text-center text-gray-500">No active
+                                                instances. Launch one to get started.</td>
+                                        </tr>
                                     @endif
                                 </tbody>
                             </table>
@@ -431,7 +508,8 @@
                                     class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50">
                                     @foreach ($bucketsData as $index => $bucket)
                                         <option value="{{ $index }}">{{ $bucket['name'] }}
-                                            ({{ $bucket['totalGB'] }}GB Plan)</option>
+                                            ({{ $bucket['totalGB'] }}GB Plan)
+                                        </option>
                                     @endforeach
                                 </select>
                             </div>
@@ -478,7 +556,8 @@
                     window.userBucketsData = @json($bucketsData);
                 </script>
 
-                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition border-t-4 border-orange-500 flex flex-col justify-between">
+                <div
+                    class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition border-t-4 border-orange-500 flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-gray-800">EC2 Compute Quotas</h3>
@@ -487,21 +566,24 @@
                             </div>
                         </div>
 
-                        @if(count($instancesData) > 0)
+                        @if (count($instancesData) > 0)
                             @php
                                 $totalVcpus = 0;
                                 $runningCount = 0;
                                 $stoppedCount = 0;
                                 foreach ($instancesData as $inst) {
-                                    $vcpu = match($inst['instance_type']) {
+                                    $vcpu = match ($inst['instance_type']) {
                                         't2.micro' => 1,
                                         't2.small' => 2,
                                         't2.medium' => 4,
                                         default => 1,
                                     };
                                     $totalVcpus += $vcpu;
-                                    if ($inst['status'] === 'running') $runningCount++;
-                                    else $stoppedCount++;
+                                    if ($inst['status'] === 'running') {
+                                        $runningCount++;
+                                    } else {
+                                        $stoppedCount++;
+                                    }
                                 }
                             @endphp
                             <div class="space-y-3 mb-4">
@@ -523,7 +605,8 @@
                                 </div>
                             </div>
                         @else
-                            <div class="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-md">
+                            <div
+                                class="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-md">
                                 No active instances.<br>Launch one to see compute quotas here.
                             </div>
                         @endif
@@ -541,7 +624,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
+                {{-- <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-semibold text-gray-800">VPS Network (Template)</h3>
                         <div class="bg-gray-100 rounded-full p-2">
@@ -590,7 +673,7 @@
                             View Details
                         </button>
                     </div>
-                </div>
+                </div> --}}
             </div>
 
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -614,10 +697,16 @@
 
                     <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
                         <div class="flex-shrink-0">
-                            <div class="flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
+                            {{-- <div class="flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
                                 <svg class="h-6 w-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd"
                                         d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" />
+                                </svg>
+                            </div> --}}
+                            <div class="flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                                <svg class="h-6 w-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
                                 </svg>
                             </div>
                         </div>
@@ -628,7 +717,7 @@
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                    {{-- <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
                         <div class="flex-shrink-0">
                             <div class="flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
                                 <svg class="h-6 w-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
@@ -642,7 +731,7 @@
                             <p class="text-xs text-yellow-600">In Progress</p>
                             <p class="text-xs text-gray-500 mt-1">Backend services</p>
                         </div>
-                    </div>
+                    </div> --}}
                 </div>
             </div>
 
@@ -682,7 +771,7 @@
                         </div>
                     </div>
 
-                    <div class="flex items-start gap-4 pb-4 border-b border-gray-200 last:border-0">
+                    {{-- <div class="flex items-start gap-4 pb-4 border-b border-gray-200 last:border-0">
                         <div class="flex-shrink-0 mt-1">
                             <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100">
                                 <svg class="h-4 w-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
@@ -697,7 +786,7 @@
                             </p>
                             <p class="text-xs text-gray-500 mt-1">8 hours ago</p>
                         </div>
-                    </div>
+                    </div> --}}
 
                     <div class="flex items-start gap-4 pb-4 border-b border-gray-200 last:border-0">
                         <div class="flex-shrink-0 mt-1">
@@ -887,51 +976,52 @@
                 });
             }
 
-        // FEATURE 3: EC2 INSTANCE EXPLORER REFRESH
-        const ec2RefreshBtn = document.getElementById('ec2-refresh-btn');
-        if (ec2RefreshBtn) {
-            ec2RefreshBtn.addEventListener('click', function() {
-                const originalText = this.innerText;
-                this.innerText = 'Refreshing...';
-                this.disabled = true;
+            // FEATURE 3: EC2 INSTANCE EXPLORER REFRESH
+            const ec2RefreshBtn = document.getElementById('ec2-refresh-btn');
+            if (ec2RefreshBtn) {
+                ec2RefreshBtn.addEventListener('click', function() {
+                    const originalText = this.innerText;
+                    this.innerText = 'Refreshing...';
+                    this.disabled = true;
 
-                fetch('/ec2/list', {
-                    method: 'POST',
-                    headers: { 
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
-                    }
-                })
-                .then(res => res.json())
-                .then(data => {
-                    this.innerText = originalText;
-                    this.disabled = false;
+                    fetch('/ec2/list', {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
+                            }
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            this.innerText = originalText;
+                            this.disabled = false;
 
-                    if (data.success) {
-                        const tbody = document.getElementById('ec2-instance-body');
-                        tbody.innerHTML = ''; 
+                            if (data.success) {
+                                const tbody = document.getElementById('ec2-instance-body');
+                                tbody.innerHTML = '';
 
-                        if (data.instances.length === 0) {
-                            tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">No active instances. Launch one to get started.</td></tr>`;
-                        } else {
-                            data.instances.forEach(inst => {
-                                const stateBadge = inst.status === 'running' 
-                                    ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">● running</span>`
-                                    : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">● stopped</span>`;
-                                
-                                const actionBtn = inst.status === 'running'
-                                    ? `<form class="ec2-action-form" action="/ec2/stop" method="POST">
+                                if (data.instances.length === 0) {
+                                    tbody.innerHTML =
+                                        `<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">No active instances. Launch one to get started.</td></tr>`;
+                                } else {
+                                    data.instances.forEach(inst => {
+                                        const stateBadge = inst.status === 'running' ?
+                                            `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">● running</span>` :
+                                            `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">● stopped</span>`;
+
+                                        const actionBtn = inst.status === 'running' ?
+                                            `<form class="ec2-action-form" action="/ec2/stop" method="POST">
                                             <input type="hidden" name="_token" value="${document.querySelector('input[name="_token"]').value}">
                                             <input type="hidden" name="instance_id" value="${inst.instance_id}">
                                             <button type="submit" class="text-yellow-600 hover:underline text-xs">Stop</button>
-                                        </form>`
-                                    : `<form class="ec2-action-form" action="/ec2/start" method="POST">
+                                        </form>` :
+                                            `<form class="ec2-action-form" action="/ec2/start" method="POST">
                                             <input type="hidden" name="_token" value="${document.querySelector('input[name="_token"]').value}">
                                             <input type="hidden" name="instance_id" value="${inst.instance_id}">
                                             <button type="submit" class="text-green-600 hover:underline text-xs">Start</button>
                                         </form>`;
 
-                                tbody.innerHTML += `
+                                        tbody.innerHTML += `
                                     <tr class="border-b">
                                         <td class="px-3 py-3 font-medium text-gray-900">${inst.instance_name}</td>
                                         <td class="px-3 py-3 font-mono text-xs">${inst.instance_id}</td>
@@ -949,67 +1039,70 @@
                                         </td>
                                     </tr>
                                 `;
-                            });
-                            // Re-bind ajax forms for EC2 actions
-                            bindEc2ActionForms();
-                        }
-                    }
-                })
-                .catch(() => {
-                    this.innerText = originalText;
-                    this.disabled = false;
-                    alert('Network error while refreshing instances.');
+                                    });
+                                    // Re-bind ajax forms for EC2 actions
+                                    bindEc2ActionForms();
+                                }
+                            }
+                        })
+                        .catch(() => {
+                            this.innerText = originalText;
+                            this.disabled = false;
+                            alert('Network error while refreshing instances.');
+                        });
                 });
-            });
-        }
+            }
 
-        // FEATURE 4: EC2 AJAX ACTIONS
-        function bindEc2ActionForms() {
-            const actionForms = document.querySelectorAll('.ec2-action-form');
-            actionForms.forEach(form => {
-                const newForm = form.cloneNode(true);
-                form.parentNode.replaceChild(newForm, form);
-                
-                newForm.addEventListener('submit', function(e) {
-                    if (this.onsubmit && !this.onsubmit()) {
-                        e.preventDefault();
-                        return; // Cancelled by confirm dialog
-                    }
-                    e.preventDefault();
+            // FEATURE 4: EC2 AJAX ACTIONS
+            function bindEc2ActionForms() {
+                const actionForms = document.querySelectorAll('.ec2-action-form');
+                actionForms.forEach(form => {
+                    const newForm = form.cloneNode(true);
+                    form.parentNode.replaceChild(newForm, form);
 
-                    const formData = new FormData(newForm);
-                    const btn = newForm.querySelector('button');
-                    const originalText = btn.innerText;
-                    btn.innerText = '...';
-                    btn.disabled = true;
-                    
-                    fetch(newForm.action, {
-                        method: 'POST',
-                        body: formData,
-                        headers: { 'Accept': 'application/json' }
-                    })
-                    .then(res => res.ok ? res.json() : Promise.reject('Server error'))
-                    .then(data => {
-                        if(data.success) {
-                            if (ec2RefreshBtn) ec2RefreshBtn.click(); // Auto-refresh table
-                        } else { 
-                            alert('Action failed.'); 
-                            btn.innerText = originalText;
-                            btn.disabled = false;
+                    newForm.addEventListener('submit', function(e) {
+                        if (this.onsubmit && !this.onsubmit()) {
+                            e.preventDefault();
+                            return; // Cancelled by confirm dialog
                         }
-                    })
-                    .catch(() => { 
-                        alert('Error processing action.'); 
-                        btn.innerText = originalText;
-                        btn.disabled = false;
+                        e.preventDefault();
+
+                        const formData = new FormData(newForm);
+                        const btn = newForm.querySelector('button');
+                        const originalText = btn.innerText;
+                        btn.innerText = '...';
+                        btn.disabled = true;
+
+                        fetch(newForm.action, {
+                                method: 'POST',
+                                body: formData,
+                                headers: {
+                                    'Accept': 'application/json'
+                                }
+                            })
+                            .then(res => res.ok ? res.json() : Promise.reject('Server error'))
+                            .then(data => {
+                                if (data.success) {
+                                    if (ec2RefreshBtn) ec2RefreshBtn
+                                .click(); // Auto-refresh table
+                                } else {
+                                    alert('Action failed.');
+                                    btn.innerText = originalText;
+                                    btn.disabled = false;
+                                }
+                            })
+                            .catch(() => {
+                                alert('Error processing action.');
+                                btn.innerText = originalText;
+                                btn.disabled = false;
+                            });
                     });
                 });
-            });
-        }
-        
-        bindEc2ActionForms();
+            }
 
-    });
+            bindEc2ActionForms();
+
+        });
     </script>
 
 </x-app-layout>
