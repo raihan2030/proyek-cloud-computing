@@ -136,7 +136,7 @@ Route::get('/dashboard', function () {
         'bucketsData'    => $bucketsData,
         'storagePlans'   => $storagePlans,
         'computePlans'   => $computePlans,
-        'instancesData'  => $instancesData,,
+        'instancesData'  => $instancesData,
         'userCredential' => $userCredential
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
