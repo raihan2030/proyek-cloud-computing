@@ -1,18 +1,53 @@
 <x-app-layout>
     <div class="py-12 bg-gray-50">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            
+
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
+                <div class="p-6 text-gray-900">
+                    <h3 class="text-lg font-bold mb-4">Akses Kredensial API (Programmatic Access)</h3>
+
+                    @if ($userCredential)
+                        <div class="bg-gray-100 p-4 rounded border">
+                            <div class="mb-2">
+                                <span class="block font-semibold">Access Key:</span>
+                                <code
+                                    class="bg-white px-2 py-1 rounded text-blue-600">{{ $userCredential->access_key }}</code>
+                            </div>
+                            <div>
+                                <span class="block font-semibold">Secret Key:</span>
+                                <code
+                                    class="bg-white px-2 py-1 rounded text-red-600">{{ decrypt($userCredential->secret_key_encrypted) }}</code>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">*Gunakan kredensial di atas untuk login via AWS CLI
+                                atau aplikasi pihak ketiga.</p>
+                        </div>
+                    @else
+                        <p class="mb-4 text-gray-600">Anda belum membuat akses kredensial. Anda membutuhkannya untuk
+                            mengakses layanan IaaS dari luar web.</p>
+                        <form action="{{ route('s3.generateCredentials') }}" method="POST">
+                            @csrf
+                            <button type="submit"
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                Request Access Key ke MiniStack
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                
+
                 <div class="bg-white rounded-lg shadow p-6 border-l-4 border-indigo-500 hover:shadow-md transition">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-black-500 bold uppercase tracking-wider">Total Resources</p>
+                            <p class="text-sm font-medium text-black-500 bold uppercase tracking-wider">Total Resources
+                            </p>
                             <h4 class="text-3xl font-bold text-gray-800 mt-1">{{ $totalResources }}</h4>
                         </div>
                         <div class="p-3 bg-indigo-50 text-indigo-600 rounded-full">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                             </svg>
                         </div>
                     </div>
@@ -22,12 +57,14 @@
                 <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500 hover:shadow-md transition">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-black-500 bold uppercase tracking-wider">Active Services</p>
+                            <p class="text-sm font-medium text-black-500 bold uppercase tracking-wider">Active Services
+                            </p>
                             <h4 class="text-3xl font-bold text-gray-800 mt-1">{{ $activeServices }}</h4>
                         </div>
                         <div class="p-3 bg-green-50 text-green-600 rounded-full">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                             </svg>
                         </div>
                     </div>
@@ -37,12 +74,14 @@
                 <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500 hover:shadow-md transition">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-black-500 bold uppercase tracking-wider">Monthly Spend</p>
+                            <p class="text-sm font-medium text-black-500 bold uppercase tracking-wider">Monthly Spend
+                            </p>
                             <h4 class="text-3xl font-bold text-gray-800 mt-1">${{ number_format($monthlyBill, 2) }}</h4>
                         </div>
                         <div class="p-3 bg-amber-50 text-amber-600 rounded-full">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                             </svg>
                         </div>
                     </div>
@@ -56,88 +95,129 @@
                     <h3 class="text-lg font-semibold text-gray-800">S3 Storage Management (Test Workspace)</h3>
                 </div>
 
-                @if(session('success'))
-                    <div class="mb-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">{{ session('success') }}</div>
+                @if (session('success'))
+                    <div class="mb-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
+                        {{ session('success') }}</div>
                 @endif
-                @if(session('error'))
-                    <div class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">{{ session('error') }}</div>
+                @if (session('error'))
+                    <div class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">{{ session('error') }}
+                    </div>
                 @endif
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 hover:shadow-md transition">
                         <h4 class="font-medium text-gray-800 mb-4 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
                             Create Isolated Bucket
                         </h4>
                         <form action="{{ route('s3.createBucket') }}" method="POST">
                             @csrf
                             <label class="block text-sm font-medium text-gray-700 mb-1">Bucket Name</label>
                             <p class="text-xs text-gray-500 mb-2">Must be lowercase, no spaces.</p>
-                            <input type="text" name="bucket_name" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 mb-4" placeholder="e.g., iaas-firas-123" required>
-                            
+                            <input type="text" name="bucket_name"
+                                class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 mb-4"
+                                placeholder="e.g., iaas-firas-123" required>
+
                             <label class="block text-sm font-medium text-gray-700 mb-1">Storage Plan</label>
-                            <select name="plan_id" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 mb-4" required>
+                            <select name="plan_id"
+                                class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 mb-4"
+                                required>
                                 <option value="" disabled selected>Select a plan...</option>
-                                @foreach($storagePlans as $plan)
-                                    <option value="{{ $plan->id }}">{{ $plan->plan_name }} ({{ $plan->storage_quota_gb }}GB) - ${{ $plan->monthly_price }}/mo</option>
+                                @foreach ($storagePlans as $plan)
+                                    <option value="{{ $plan->id }}">{{ $plan->plan_name }}
+                                        ({{ $plan->storage_quota_gb }}GB) - ${{ $plan->monthly_price }}/mo</option>
                                 @endforeach
                             </select>
 
-                            <button type="submit" class="w-full bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition shadow-sm">Provision in MiniStack</button>
+                            <button type="submit"
+                                class="w-full bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition shadow-sm">Provision
+                                in MiniStack</button>
                         </form>
                     </div>
 
                     <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 hover:shadow-md transition">
                         <h4 class="font-medium text-gray-800 mb-4 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                            </svg>
                             Upload File to Bucket
                         </h4>
                         <form action="{{ route('s3.uploadObject') }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             <label class="block text-sm font-medium text-gray-700 mb-1">Target Bucket</label>
-                            @if(isset($bucketsData) && count($bucketsData) > 0)
-                                <select name="bucket_name" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 mb-3" required>
+                            @if (isset($bucketsData) && count($bucketsData) > 0)
+                                <select name="bucket_name"
+                                    class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 mb-3"
+                                    required>
                                     <option value="" disabled selected>Select a bucket...</option>
-                                    @foreach($bucketsData as $bucket)
+                                    @foreach ($bucketsData as $bucket)
                                         <option value="{{ $bucket['name'] }}">{{ $bucket['name'] }}</option>
                                     @endforeach
                                 </select>
                             @else
-                                <input type="text" disabled class="w-full border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-500 mb-3 cursor-not-allowed" placeholder="No active buckets available. Create one first!">
+                                <input type="text" disabled
+                                    class="w-full border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-500 mb-3 cursor-not-allowed"
+                                    placeholder="No active buckets available. Create one first!">
                             @endif
-                            
+
                             <label class="block text-sm font-medium text-gray-700 mb-1">Select Files</label>
-                            <input type="file" name="files[]" multiple class="w-full border-gray-300 rounded-md shadow-sm bg-white mb-4 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
-                            
-                            <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition shadow-sm">Upload to MiniStack</button>
+                            <input type="file" name="files[]" multiple
+                                class="w-full border-gray-300 rounded-md shadow-sm bg-white mb-4 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                required>
+
+                            <button type="submit"
+                                class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition shadow-sm">Upload
+                                to MiniStack</button>
                         </form>
                     </div>
 
                     <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 md:col-span-2">
                         <h4 class="font-medium text-gray-800 mb-4 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
                             Storage Explorer & Termination
                         </h4>
-                        
-                        <form id="explorer-form" action="{{ route('s3.viewFiles') }}" method="POST" class="flex gap-2 mb-4">
+
+                        <form id="explorer-form" action="{{ route('s3.viewFiles') }}" method="POST"
+                            class="flex gap-2 mb-4">
                             @csrf
-                            @if(isset($bucketsData) && count($bucketsData) > 0)
-                                <select name="bucket_name" class="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
-                                    <option value="" disabled {{ !session('current_bucket') ? 'selected' : '' }}>Select a bucket to view files...</option>
-                                    @foreach($bucketsData as $bucket)
-                                        <option value="{{ $bucket['name'] }}" {{ session('current_bucket') === $bucket['name'] ? 'selected' : '' }}>
+                            @if (isset($bucketsData) && count($bucketsData) > 0)
+                                <select name="bucket_name"
+                                    class="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                    required>
+                                    <option value="" disabled
+                                        {{ !session('current_bucket') ? 'selected' : '' }}>Select a bucket to view
+                                        files...</option>
+                                    @foreach ($bucketsData as $bucket)
+                                        <option value="{{ $bucket['name'] }}"
+                                            {{ session('current_bucket') === $bucket['name'] ? 'selected' : '' }}>
                                             {{ $bucket['name'] }}
                                         </option>
                                     @endforeach
                                 </select>
-                                <button type="submit" id="explorer-btn" class="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700">Open Explorer</button>
+                                <button type="submit" id="explorer-btn"
+                                    class="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700">Open
+                                    Explorer</button>
                             @else
-                                <input type="text" disabled class="flex-1 border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-500 cursor-not-allowed" placeholder="No active buckets available.">
-                                <button type="button" disabled class="bg-gray-400 text-white px-4 py-2 rounded-md cursor-not-allowed">Open Explorer</button>
+                                <input type="text" disabled
+                                    class="flex-1 border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+                                    placeholder="No active buckets available.">
+                                <button type="button" disabled
+                                    class="bg-gray-400 text-white px-4 py-2 rounded-md cursor-not-allowed">Open
+                                    Explorer</button>
                             @endif
                         </form>
 
-                        <div id="file-explorer-container" class="bg-white border rounded-md overflow-hidden mb-4 {{ session('files') ? '' : 'hidden' }}">
+                        <div id="file-explorer-container"
+                            class="bg-white border rounded-md overflow-hidden mb-4 {{ session('files') ? '' : 'hidden' }}">
                             <table class="w-full text-sm text-left text-gray-500">
                                 <thead class="text-xs text-gray-700 uppercase bg-gray-100">
                                     <tr>
@@ -147,51 +227,77 @@
                                     </tr>
                                 </thead>
                                 <tbody id="file-explorer-body">
-                                    @if(session('files'))
+                                    @if (session('files'))
                                         @forelse(session('files') as $file)
                                             <tr class="border-b">
-                                                <td class="px-4 py-3 font-medium text-gray-900">{{ $file['Key'] }}</td>
+                                                <td class="px-4 py-3 font-medium text-gray-900">{{ $file['Key'] }}
+                                                </td>
                                                 <td class="px-4 py-3">{{ number_format($file['Size']) }}</td>
                                                 <td class="px-4 py-3 text-right flex justify-end gap-2">
-                                                    <a href="{{ route('s3.downloadFile', ['bucket' => session('current_bucket'), 'key' => $file['Key']]) }}" class="text-blue-600 hover:underline">Download</a>
-                                                    <form class="ajax-delete-form" action="{{ route('s3.deleteFile') }}" method="POST">
+                                                    <a href="{{ route('s3.downloadFile', ['bucket' => session('current_bucket'), 'key' => $file['Key']]) }}"
+                                                        class="text-blue-600 hover:underline">Download</a>
+                                                    <form class="ajax-delete-form"
+                                                        action="{{ route('s3.deleteFile') }}" method="POST">
                                                         @csrf
-                                                        <input type="hidden" name="bucket_name" value="{{ session('current_bucket') }}">
-                                                        <input type="hidden" name="file_key" value="{{ $file['Key'] }}">
-                                                        <button type="submit" class="text-red-600 hover:underline">Delete</button>
+                                                        <input type="hidden" name="bucket_name"
+                                                            value="{{ session('current_bucket') }}">
+                                                        <input type="hidden" name="file_key"
+                                                            value="{{ $file['Key'] }}">
+                                                        <button type="submit"
+                                                            class="text-red-600 hover:underline">Delete</button>
                                                     </form>
                                                 </td>
                                             </tr>
                                         @empty
-                                            <tr><td colspan="3" class="px-4 py-4 text-center text-gray-500">Bucket is empty.</td></tr>
+                                            <tr>
+                                                <td colspan="3" class="px-4 py-4 text-center text-gray-500">Bucket
+                                                    is empty.</td>
+                                            </tr>
                                         @endforelse
                                     @endif
                                 </tbody>
                             </table>
                         </div>
 
-                        <div id="danger-zone-container" class="mt-4 pt-4 border-t border-gray-200 {{ session('current_bucket') ? '' : 'hidden' }}">
-                            <form action="{{ route('s3.deleteBucket') }}" method="POST" onsubmit="return confirm('WARNING: Are you sure you want to terminate this bucket? This will stop billing and cannot be undone.');">
+                        <div id="danger-zone-container"
+                            class="mt-4 pt-4 border-t border-gray-200 {{ session('current_bucket') ? '' : 'hidden' }}">
+                            <form action="{{ route('s3.deleteBucket') }}" method="POST"
+                                onsubmit="return confirm('WARNING: Are you sure you want to terminate this bucket? This will stop billing and cannot be undone.');">
                                 @csrf
-                                <input type="hidden" name="bucket_name" id="danger-zone-bucket" value="{{ session('current_bucket') }}">
-                                <button type="submit" class="text-sm text-red-600 font-medium hover:text-red-800 flex items-center gap-1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                    <span id="danger-zone-text">Terminate Service ({{ session('current_bucket') }})</span>
+                                <input type="hidden" name="bucket_name" id="danger-zone-bucket"
+                                    value="{{ session('current_bucket') }}">
+                                <button type="submit"
+                                    class="text-sm text-red-600 font-medium hover:text-red-800 flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                        </path>
+                                    </svg>
+                                    <span id="danger-zone-text">Terminate Service
+                                        ({{ session('current_bucket') }})</span>
                                 </button>
                             </form>
                         </div>
 
-                        @if(session('current_bucket'))
-                        <div class="mt-4 pt-4 border-t border-gray-200">
-                            <form action="{{ route('s3.deleteBucket') }}" method="POST" onsubmit="return confirm('WARNING: Are you sure you want to terminate this bucket? This will stop billing and cannot be undone.');">
-                                @csrf
-                                <input type="hidden" name="bucket_name" value="{{ session('current_bucket') }}">
-                                <button type="submit" class="text-sm text-red-600 font-medium hover:text-red-800 flex items-center gap-1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                    Terminate Service ({{ session('current_bucket') }})
-                                </button>
-                            </form>
-                        </div>
+                        @if (session('current_bucket'))
+                            <div class="mt-4 pt-4 border-t border-gray-200">
+                                <form action="{{ route('s3.deleteBucket') }}" method="POST"
+                                    onsubmit="return confirm('WARNING: Are you sure you want to terminate this bucket? This will stop billing and cannot be undone.');">
+                                    @csrf
+                                    <input type="hidden" name="bucket_name"
+                                        value="{{ session('current_bucket') }}">
+                                    <button type="submit"
+                                        class="text-sm text-red-600 font-medium hover:text-red-800 flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                            </path>
+                                        </svg>
+                                        Terminate Service ({{ session('current_bucket') }})
+                                    </button>
+                                </form>
+                            </div>
                         @endif
                     </div>
 
@@ -199,7 +305,8 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition border-t-4 border-blue-500 flex flex-col justify-between">
+                <div
+                    class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition border-t-4 border-blue-500 flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-gray-800">S3 Storage Quotas</h3>
@@ -208,12 +315,15 @@
                             </div>
                         </div>
 
-                        @if(count($bucketsData) > 0)
+                        @if (count($bucketsData) > 0)
                             <div class="mb-5">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Select Bucket to View</label>
-                                <select id="bucket-selector" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50">
-                                    @foreach($bucketsData as $index => $bucket)
-                                        <option value="{{ $index }}">{{ $bucket['name'] }} ({{ $bucket['totalGB'] }}GB Plan)</option>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Select Bucket to
+                                    View</label>
+                                <select id="bucket-selector"
+                                    class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50">
+                                    @foreach ($bucketsData as $index => $bucket)
+                                        <option value="{{ $index }}">{{ $bucket['name'] }}
+                                            ({{ $bucket['totalGB'] }}GB Plan)</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -222,29 +332,35 @@
                                 <div class="flex justify-between items-center mt-4 mb-2">
                                     <span class="text-sm font-medium text-gray-600">Capacity Used</span>
                                     <span id="display-size-text" class="text-sm font-bold text-gray-800">
-                                        {{ $bucketsData[0]['displaySize'] }} / {{ $bucketsData[0]['totalGB'] }} GB ({{ number_format($bucketsData[0]['percentage'], 0) }}%)
+                                        {{ $bucketsData[0]['displaySize'] }} / {{ $bucketsData[0]['totalGB'] }} GB
+                                        ({{ number_format($bucketsData[0]['percentage'], 0) }}%)
                                     </span>
                                 </div>
                                 <div class="w-full bg-gray-200 rounded-full h-2">
-                                    <div id="capacity-progress-bar" class="{{ $bucketsData[0]['colorClass'] }} h-2 rounded-full transition-all duration-500" style="width: {{ $bucketsData[0]['percentage'] }}%"></div>
+                                    <div id="capacity-progress-bar"
+                                        class="{{ $bucketsData[0]['colorClass'] }} h-2 rounded-full transition-all duration-500"
+                                        style="width: {{ $bucketsData[0]['percentage'] }}%"></div>
                                 </div>
                             </div>
 
                             <div class="space-y-2 mb-4">
                                 <div class="flex justify-between text-sm">
                                     <span class="text-gray-600">Available Storage</span>
-                                    <span id="available-storage-text" class="font-semibold text-gray-800">{{ $bucketsData[0]['available'] }}</span>
+                                    <span id="available-storage-text"
+                                        class="font-semibold text-gray-800">{{ $bucketsData[0]['available'] }}</span>
                                 </div>
                             </div>
                         @else
-                            <div class="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-md">
+                            <div
+                                class="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-md">
                                 No active buckets.<br>Provision a new bucket to see quotas here.
                             </div>
                         @endif
                     </div>
 
                     <div class="flex gap-2 pt-4 border-t border-gray-200 mt-4">
-                        <a href="#upload-form" class="flex-1 px-3 py-2 text-center bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition">
+                        <a href="#upload-form"
+                            class="flex-1 px-3 py-2 text-center bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition">
                             Upload Files
                         </a>
                     </div>
@@ -260,7 +376,8 @@
                         <div class="bg-gray-100 rounded-full p-2">
                             <svg class="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M13 7H7v6h6V7z" />
-                                <path fill-rule="evenodd" d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2V2a1 1 0 112 0v1h1a2 2 0 012 2v1h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v1a2 2 0 01-2 2h-1v1a1 1 0 11-2 0v-1h-2v1a1 1 0 11-2 0v-1H7v1a1 1 0 11-2 0v-1H4a2 2 0 01-2-2v-1H1a1 1 0 110-2h1V9H1a1 1 0 010-2h1V7H1a1 1 0 110-2h1V4a2 2 0 012-2h1V2a1 1 0 010-2z" />
+                                <path fill-rule="evenodd"
+                                    d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2V2a1 1 0 112 0v1h1a2 2 0 012 2v1h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v1a2 2 0 01-2 2h-1v1a1 1 0 11-2 0v-1h-2v1a1 1 0 11-2 0v-1H7v1a1 1 0 11-2 0v-1H4a2 2 0 01-2-2v-1H1a1 1 0 110-2h1V9H1a1 1 0 010-2h1V7H1a1 1 0 110-2h1V4a2 2 0 012-2h1V2a1 1 0 010-2z" />
                             </svg>
                         </div>
                     </div>
@@ -305,10 +422,12 @@
                     </div>
 
                     <div class="flex gap-2 pt-4 border-t border-gray-200">
-                        <button class="flex-1 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition">
+                        <button
+                            class="flex-1 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition">
                             Manage
                         </button>
-                        <button class="flex-1 px-3 py-2 bg-gray-100 text-gray-800 text-sm rounded-lg hover:bg-gray-200 transition">
+                        <button
+                            class="flex-1 px-3 py-2 bg-gray-100 text-gray-800 text-sm rounded-lg hover:bg-gray-200 transition">
                             View Details
                         </button>
                     </div>
@@ -320,7 +439,8 @@
                         <h3 class="text-lg font-semibold text-gray-800">VPS Network (Template)</h3>
                         <div class="bg-gray-100 rounded-full p-2">
                             <svg class="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                                <path
+                                    d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
                             </svg>
                         </div>
                     </div>
@@ -354,10 +474,12 @@
                     </div>
 
                     <div class="flex gap-2 pt-4 border-t border-gray-200">
-                        <button class="flex-1 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition">
+                        <button
+                            class="flex-1 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition">
                             Manage
                         </button>
-                        <button class="flex-1 px-3 py-2 bg-gray-100 text-gray-800 text-sm rounded-lg hover:bg-gray-200 transition">
+                        <button
+                            class="flex-1 px-3 py-2 bg-gray-100 text-gray-800 text-sm rounded-lg hover:bg-gray-200 transition">
                             View Details
                         </button>
                     </div>
@@ -371,7 +493,8 @@
                         <div class="flex-shrink-0">
                             <div class="flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
                                 <svg class="h-6 w-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                                    <path fill-rule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
                                 </svg>
                             </div>
                         </div>
@@ -386,7 +509,8 @@
                         <div class="flex-shrink-0">
                             <div class="flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
                                 <svg class="h-6 w-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" />
+                                    <path fill-rule="evenodd"
+                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" />
                                 </svg>
                             </div>
                         </div>
@@ -401,7 +525,8 @@
                         <div class="flex-shrink-0">
                             <div class="flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
                                 <svg class="h-6 w-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" />
+                                    <path fill-rule="evenodd"
+                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" />
                                 </svg>
                             </div>
                         </div>
@@ -421,13 +546,15 @@
                         <div class="flex-shrink-0 mt-1">
                             <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100">
                                 <svg class="h-4 w-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8 5a3 3 0 106 0 3 3 0 00-6 0zM15 4a1 1 0 11-2 0 1 1 0 012 0zM2.5 7a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM17 8a1 1 0 100-2 1 1 0 000 2z" />
+                                    <path
+                                        d="M8 5a3 3 0 106 0 3 3 0 00-6 0zM15 4a1 1 0 11-2 0 1 1 0 012 0zM2.5 7a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM17 8a1 1 0 100-2 1 1 0 000 2z" />
                                 </svg>
                             </div>
                         </div>
                         <div class="flex-1">
                             <p class="text-sm font-medium text-gray-800">S3 Storage Bucket Created</p>
-                            <p class="text-xs text-gray-600 mt-1">New bucket "prod-app-backups" created with versioning enabled</p>
+                            <p class="text-xs text-gray-600 mt-1">New bucket "prod-app-backups" created with versioning
+                                enabled</p>
                             <p class="text-xs text-gray-500 mt-1">2 hours ago</p>
                         </div>
                     </div>
@@ -442,7 +569,8 @@
                         </div>
                         <div class="flex-1">
                             <p class="text-sm font-medium text-gray-800">EC2 Instance Launched</p>
-                            <p class="text-xs text-gray-600 mt-1">New t3.large instance "web-server-prod-02" started in us-east-1</p>
+                            <p class="text-xs text-gray-600 mt-1">New t3.large instance "web-server-prod-02" started in
+                                us-east-1</p>
                             <p class="text-xs text-gray-500 mt-1">5 hours ago</p>
                         </div>
                     </div>
@@ -451,13 +579,15 @@
                         <div class="flex-shrink-0 mt-1">
                             <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100">
                                 <svg class="h-4 w-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                                    <path
+                                        d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
                                 </svg>
                             </div>
                         </div>
                         <div class="flex-1">
                             <p class="text-sm font-medium text-gray-800">Network Security Group Updated</p>
-                            <p class="text-xs text-gray-600 mt-1">Inbound rule added for HTTPS traffic from 0.0.0.0/0</p>
+                            <p class="text-xs text-gray-600 mt-1">Inbound rule added for HTTPS traffic from 0.0.0.0/0
+                            </p>
                             <p class="text-xs text-gray-500 mt-1">8 hours ago</p>
                         </div>
                     </div>
@@ -466,13 +596,15 @@
                         <div class="flex-shrink-0 mt-1">
                             <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100">
                                 <svg class="h-4 w-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8 5a3 3 0 106 0 3 3 0 00-6 0zM15 4a1 1 0 11-2 0 1 1 0 012 0zM2.5 7a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM17 8a1 1 0 100-2 1 1 0 000 2z" />
+                                    <path
+                                        d="M8 5a3 3 0 106 0 3 3 0 00-6 0zM15 4a1 1 0 11-2 0 1 1 0 012 0zM2.5 7a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM17 8a1 1 0 100-2 1 1 0 000 2z" />
                                 </svg>
                             </div>
                         </div>
                         <div class="flex-1">
                             <p class="text-sm font-medium text-gray-800">Billing Threshold Alert</p>
-                            <p class="text-xs text-gray-600 mt-1">Monthly charges have reached 85% of your budget limit</p>
+                            <p class="text-xs text-gray-600 mt-1">Monthly charges have reached 85% of your budget limit
+                            </p>
                             <p class="text-xs text-gray-500 mt-1">12 hours ago</p>
                         </div>
                     </div>
@@ -487,98 +619,112 @@
                         </div>
                         <div class="flex-1">
                             <p class="text-sm font-medium text-gray-800">Backup Completed Successfully</p>
-                            <p class="text-xs text-gray-600 mt-1">Daily backup of database completed. 2.1 GB backed up in 4 minutes</p>
+                            <p class="text-xs text-gray-600 mt-1">Daily backup of database completed. 2.1 GB backed up
+                                in 4 minutes</p>
                             <p class="text-xs text-gray-500 mt-1">1 day ago</p>
                         </div>
                     </div>
                 </div>
             </div>
-            
+
         </div>
     </div>
 
     <script>
-        
-    document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function() {
 
-        // FEATURE 1: SEAMLESS AJAX DELETE
-        // We put this in a function so we can re-run it after injecting new HTML rows
-        function bindAjaxDeleteForms() {
-            const deleteForms = document.querySelectorAll('.ajax-delete-form');
-            deleteForms.forEach(form => {
-                // Remove old listeners to prevent double-clicking
-                const newForm = form.cloneNode(true);
-                form.parentNode.replaceChild(newForm, form);
-                
-                newForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    if (!confirm('Delete this file?')) return;
+            // FEATURE 1: SEAMLESS AJAX DELETE
+            // We put this in a function so we can re-run it after injecting new HTML rows
+            function bindAjaxDeleteForms() {
+                const deleteForms = document.querySelectorAll('.ajax-delete-form');
+                deleteForms.forEach(form => {
+                    // Remove old listeners to prevent double-clicking
+                    const newForm = form.cloneNode(true);
+                    form.parentNode.replaceChild(newForm, form);
 
-                    const formData = new FormData(newForm);
-                    const tableRow = newForm.closest('tr'); 
-                    tableRow.style.opacity = '0.5';
+                    newForm.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        if (!confirm('Delete this file?')) return;
 
-                    fetch(newForm.action, {
-                        method: 'POST',
-                        body: formData,
-                        headers: { 'Accept': 'application/json' }
-                    })
-                    .then(res => res.ok ? res.json() : Promise.reject('Server error'))
-                    .then(data => {
-                        if(data.success) tableRow.style.display = 'none';
-                        else { alert('Failed to delete.'); tableRow.style.opacity = '1'; }
-                    })
-                    .catch(() => { alert('Error processing delete.'); tableRow.style.opacity = '1'; });
+                        const formData = new FormData(newForm);
+                        const tableRow = newForm.closest('tr');
+                        tableRow.style.opacity = '0.5';
+
+                        fetch(newForm.action, {
+                                method: 'POST',
+                                body: formData,
+                                headers: {
+                                    'Accept': 'application/json'
+                                }
+                            })
+                            .then(res => res.ok ? res.json() : Promise.reject('Server error'))
+                            .then(data => {
+                                if (data.success) tableRow.style.display = 'none';
+                                else {
+                                    alert('Failed to delete.');
+                                    tableRow.style.opacity = '1';
+                                }
+                            })
+                            .catch(() => {
+                                alert('Error processing delete.');
+                                tableRow.style.opacity = '1';
+                            });
+                    });
                 });
-            });
-        }
+            }
 
-        // Run once on page load for any PHP-rendered buttons
-        bindAjaxDeleteForms();
+            // Run once on page load for any PHP-rendered buttons
+            bindAjaxDeleteForms();
 
 
-        // --- FEATURE: AJAX STORAGE EXPLORER ---
-        const explorerForm = document.getElementById('explorer-form');
-        if (explorerForm) {
-            explorerForm.addEventListener('submit', function(e) {
-                e.preventDefault();
+            // --- FEATURE: AJAX STORAGE EXPLORER ---
+            const explorerForm = document.getElementById('explorer-form');
+            if (explorerForm) {
+                explorerForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
 
-                const formData = new FormData(explorerForm);
-                const bucketName = formData.get('bucket_name');
-                if(!bucketName) return;
+                    const formData = new FormData(explorerForm);
+                    const bucketName = formData.get('bucket_name');
+                    if (!bucketName) return;
 
-                const btn = document.getElementById('explorer-btn');
-                const originalText = btn.innerText;
-                btn.innerText = 'Loading...';
-                btn.disabled = true;
+                    const btn = document.getElementById('explorer-btn');
+                    const originalText = btn.innerText;
+                    btn.innerText = 'Loading...';
+                    btn.disabled = true;
 
-                fetch(explorerForm.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'Accept': 'application/json' }
-                })
-                .then(res => res.json())
-                .then(data => {
-                    btn.innerText = originalText;
-                    btn.disabled = false;
+                    fetch(explorerForm.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            btn.innerText = originalText;
+                            btn.disabled = false;
 
-                    if (data.success) {
-                        const container = document.getElementById('file-explorer-container');
-                        const tbody = document.getElementById('file-explorer-body');
-                        
-                        container.classList.remove('hidden');
-                        tbody.innerHTML = ''; // Clear old table data
+                            if (data.success) {
+                                const container = document.getElementById('file-explorer-container');
+                                const tbody = document.getElementById('file-explorer-body');
 
-                        if (data.files.length === 0) {
-                            tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-4 text-center text-gray-500">Bucket is empty.</td></tr>`;
-                        } else {
-                            // Dynamically build a table row for every file returned by Laravel
-                            data.files.forEach(file => {
-                                const sizeFmt = new Intl.NumberFormat().format(file.Size);
-                                const downloadUrl = `/s3/download/${bucketName}/${file.Key}`;
-                                const token = document.querySelector('input[name="_token"]').value;
+                                container.classList.remove('hidden');
+                                tbody.innerHTML = ''; // Clear old table data
 
-                                tbody.innerHTML += `
+                                if (data.files.length === 0) {
+                                    tbody.innerHTML =
+                                        `<tr><td colspan="3" class="px-4 py-4 text-center text-gray-500">Bucket is empty.</td></tr>`;
+                                } else {
+                                    // Dynamically build a table row for every file returned by Laravel
+                                    data.files.forEach(file => {
+                                        const sizeFmt = new Intl.NumberFormat().format(file
+                                            .Size);
+                                        const downloadUrl =
+                                            `/s3/download/${bucketName}/${file.Key}`;
+                                        const token = document.querySelector(
+                                            'input[name="_token"]').value;
+
+                                        tbody.innerHTML += `
                                     <tr class="border-b">
                                         <td class="px-4 py-3 font-medium text-gray-900">${file.Key}</td>
                                         <td class="px-4 py-3">${sizeFmt}</td>
@@ -593,45 +739,48 @@
                                         </td>
                                     </tr>
                                 `;
-                            });
-                            // Attach the silent delete logic to these brand new buttons!
-                            bindAjaxDeleteForms();
-                        }
+                                    });
+                                    // Attach the silent delete logic to these brand new buttons!
+                                    bindAjaxDeleteForms();
+                                }
 
-                        // Show the Terminate button for this specific bucket
-                        document.getElementById('danger-zone-container').classList.remove('hidden');
-                        document.getElementById('danger-zone-bucket').value = bucketName;
-                        document.getElementById('danger-zone-text').innerText = `Terminate Service (${bucketName})`;
-                    }
-                })
-                .catch(() => {
-                    btn.innerText = originalText;
-                    btn.disabled = false;
-                    alert('Network error while fetching files.');
+                                // Show the Terminate button for this specific bucket
+                                document.getElementById('danger-zone-container').classList.remove(
+                                    'hidden');
+                                document.getElementById('danger-zone-bucket').value = bucketName;
+                                document.getElementById('danger-zone-text').innerText =
+                                    `Terminate Service (${bucketName})`;
+                            }
+                        })
+                        .catch(() => {
+                            btn.innerText = originalText;
+                            btn.disabled = false;
+                            alert('Network error while fetching files.');
+                        });
                 });
-            });
-        }
+            }
 
-        // FEATURE 2: DYNAMIC BUCKET QUOTA SELECTOR
-        const bucketSelector = document.getElementById('bucket-selector');
-        if (bucketSelector && window.userBucketsData) {
-            bucketSelector.addEventListener('change', function() {
-                const selectedIndex = this.value;
-                const bucket = window.userBucketsData[selectedIndex];
-                
-                // Update Text
-                document.getElementById('display-size-text').innerText = 
-                    `${bucket.displaySize} / ${bucket.totalGB} GB (${Math.round(bucket.percentage)}%)`;
-                document.getElementById('available-storage-text').innerText = bucket.available;
-                
-                // Update Bar Width and Color
-                const progressBar = document.getElementById('capacity-progress-bar');
-                progressBar.style.width = bucket.percentage + '%';
-                progressBar.className = `${bucket.colorClass} h-2 rounded-full transition-all duration-500`;
-            });
-        }
+            // FEATURE 2: DYNAMIC BUCKET QUOTA SELECTOR
+            const bucketSelector = document.getElementById('bucket-selector');
+            if (bucketSelector && window.userBucketsData) {
+                bucketSelector.addEventListener('change', function() {
+                    const selectedIndex = this.value;
+                    const bucket = window.userBucketsData[selectedIndex];
 
-    });
+                    // Update Text
+                    document.getElementById('display-size-text').innerText =
+                        `${bucket.displaySize} / ${bucket.totalGB} GB (${Math.round(bucket.percentage)}%)`;
+                    document.getElementById('available-storage-text').innerText = bucket.available;
+
+                    // Update Bar Width and Color
+                    const progressBar = document.getElementById('capacity-progress-bar');
+                    progressBar.style.width = bucket.percentage + '%';
+                    progressBar.className =
+                        `${bucket.colorClass} h-2 rounded-full transition-all duration-500`;
+                });
+            }
+
+        });
     </script>
 
 </x-app-layout>

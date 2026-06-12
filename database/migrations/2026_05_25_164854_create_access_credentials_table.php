@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('access_key');
-            $table->string('secret_key_encrypted');
+            $table->text('secret_key_encrypted');
             $table->boolean('is_active')->default(true);
             $table->timestamp('last_used_at')->nullable();
             $table->timestamps();

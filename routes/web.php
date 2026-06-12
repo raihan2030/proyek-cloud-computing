@@ -93,13 +93,19 @@ Route::get('/dashboard', function () {
 
     $storagePlans = DB::table('subscription_plans')->where('service_type', 'iaas')->get();
 
+    $userCredential = DB::table('access_credentials')
+        ->where('user_id', Auth::id())
+        ->where('is_active', true)
+        ->first();
+
     // 4. Return view with all dynamic values bundled
     return view('dashboard', [
         'totalResources' => $totalResources,
         'activeServices' => $activeServices,
         'monthlyBill'    => $monthlyBill,
         'bucketsData'    => $bucketsData,
-        'storagePlans'   => $storagePlans
+        'storagePlans'   => $storagePlans,
+        'userCredential' => $userCredential
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -115,6 +121,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/s3/download/{bucket}/{key}', [S3Controller::class, 'downloadFile'])->name('s3.downloadFile');
     Route::post('/s3/delete-file', [S3Controller::class, 'deleteFile'])->name('s3.deleteFile');
     Route::post('/s3/delete-bucket', [S3Controller::class, 'deleteBucket'])->name('s3.deleteBucket');
+
+    Route::post('/s3/generate-credentials', [S3Controller::class, 'generateCredentials'])->name('s3.generateCredentials');
 });
 
 require __DIR__.'/auth.php';
