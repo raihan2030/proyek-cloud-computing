@@ -146,7 +146,12 @@ Route::get('/dashboard', function () {
         ];
     }
 
-    // 6. Return view with all dynamic values bundled
+    $recentActivities = DB::table('activity_logs')
+        ->where('user_id', Auth::id())
+        ->orderBy('created_at', 'desc')
+        ->limit(5)
+        ->get();
+
     return view('dashboard', [
         'totalResources' => $totalResources,
         'activeServices' => $activeServices,
@@ -156,7 +161,8 @@ Route::get('/dashboard', function () {
         'computePlans'   => $computePlans,
         'instancesData'  => $instancesData, // Menghapus typo koma ganda yang ada sebelumnya
         'userCredentials' => $userCredentials, // Ubah dari userCredential menjadi ini
-        'availableResourcesForKey' => $availableResourcesForKey // Tambahkan ini
+        'availableResourcesForKey' => $availableResourcesForKey, // Tambahkan ini
+        'recentActivities' => $recentActivities
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 

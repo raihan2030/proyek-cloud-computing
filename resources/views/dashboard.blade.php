@@ -735,91 +735,52 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Activity (Template)</h3>
+            {{-- ============================================================ --}}
+            {{-- RECENT ACTIVITY LOGS SECTION --}}
+            {{-- ============================================================ --}}
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Riwayat Aktivitas Penyewaan</h3>
                 <div class="space-y-4">
-                    <div class="flex items-start gap-4 pb-4 border-b border-gray-200 last:border-0">
-                        <div class="flex-shrink-0 mt-1">
-                            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100">
-                                <svg class="h-4 w-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path
-                                        d="M8 5a3 3 0 106 0 3 3 0 00-6 0zM15 4a1 1 0 11-2 0 1 1 0 012 0zM2.5 7a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM17 8a1 1 0 100-2 1 1 0 000 2z" />
-                                </svg>
+                    @forelse ($recentActivities as $log)
+                        <div class="flex items-start gap-4 pb-4 border-b border-gray-200 last:border-0">
+                            <div class="flex-shrink-0 mt-1">
+                                @if($log->action_type == 'create')
+                                    <div class="flex items-center justify-center h-8 w-8 rounded-full bg-green-100">
+                                        <svg class="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                        </svg>
+                                    </div>
+                                @elseif($log->action_type == 'delete')
+                                    <div class="flex items-center justify-center h-8 w-8 rounded-full bg-red-100">
+                                        <svg class="h-4 w-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </div>
+                                @else
+                                    <div class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-100">
+                                        <svg class="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-800 capitalize">
+                                    {{ $log->action_type }} Resource
+                                </p>
+                                <p class="text-xs text-gray-600 mt-1">
+                                    {{ $log->description }}
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    {{ \Carbon\Carbon::parse($log->created_at)->diffForHumans() }}
+                                </p>
                             </div>
                         </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-800">S3 Storage Bucket Created</p>
-                            <p class="text-xs text-gray-600 mt-1">New bucket "prod-app-backups" created with versioning
-                                enabled</p>
-                            <p class="text-xs text-gray-500 mt-1">2 hours ago</p>
+                    @empty
+                        <div class="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-md">
+                            Belum ada riwayat aktivitas penyewaan.
                         </div>
-                    </div>
-
-                    <div class="flex items-start gap-4 pb-4 border-b border-gray-200 last:border-0">
-                        <div class="flex-shrink-0 mt-1">
-                            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100">
-                                <svg class="h-4 w-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M13 7H7v6h6V7z" />
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-800">EC2 Instance Launched</p>
-                            <p class="text-xs text-gray-600 mt-1">New t3.large instance "web-server-prod-02" started in
-                                us-east-1</p>
-                            <p class="text-xs text-gray-500 mt-1">5 hours ago</p>
-                        </div>
-                    </div>
-
-                    {{-- <div class="flex items-start gap-4 pb-4 border-b border-gray-200 last:border-0">
-                        <div class="flex-shrink-0 mt-1">
-                            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100">
-                                <svg class="h-4 w-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path
-                                        d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-800">Network Security Group Updated</p>
-                            <p class="text-xs text-gray-600 mt-1">Inbound rule added for HTTPS traffic from 0.0.0.0/0
-                            </p>
-                            <p class="text-xs text-gray-500 mt-1">8 hours ago</p>
-                        </div>
-                    </div> --}}
-
-                    <div class="flex items-start gap-4 pb-4 border-b border-gray-200 last:border-0">
-                        <div class="flex-shrink-0 mt-1">
-                            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100">
-                                <svg class="h-4 w-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path
-                                        d="M8 5a3 3 0 106 0 3 3 0 00-6 0zM15 4a1 1 0 11-2 0 1 1 0 012 0zM2.5 7a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM17 8a1 1 0 100-2 1 1 0 000 2z" />
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-800">Billing Threshold Alert</p>
-                            <p class="text-xs text-gray-600 mt-1">Monthly charges have reached 85% of your budget limit
-                            </p>
-                            <p class="text-xs text-gray-500 mt-1">12 hours ago</p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 mt-1">
-                            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100">
-                                <svg class="h-4 w-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M13 7H7v6h6V7z" />
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-800">Backup Completed Successfully</p>
-                            <p class="text-xs text-gray-600 mt-1">Daily backup of database completed. 2.1 GB backed up
-                                in 4 minutes</p>
-                            <p class="text-xs text-gray-500 mt-1">1 day ago</p>
-                        </div>
-                    </div>
+                    @endforelse
                 </div>
             </div>
 
