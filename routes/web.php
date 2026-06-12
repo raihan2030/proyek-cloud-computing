@@ -1,7 +1,8 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\S3Controller; // Add this line
+use App\Http\Controllers\S3Controller;
+use App\Http\Controllers\Ec2Controller;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -91,20 +92,51 @@ Route::get('/dashboard', function () {
         ];
     }
 
-    $storagePlans = DB::table('subscription_plans')->where('service_type', 'iaas')->get();
+    $storagePlans = DB::table('subscription_plans')
+        ->where('service_type', 'iaas')
+        ->where('compute_quota_vcpu', 0)
+        ->get();
 
     $userCredential = DB::table('access_credentials')
         ->where('user_id', Auth::id())
         ->where('is_active', true)
         ->first();
 
-    // 4. Return view with all dynamic values bundled
+    // 5. Fetch EC2 Compute Data
+    $computePlans = DB::table('subscription_plans')
+        ->where('service_type', 'iaas')
+        ->where('compute_quota_vcpu', '>', 0)
+        ->get();
+
+    $activeInstances = DB::table('provisioned_resources')
+        ->where('user_id', $userId)
+        ->where('resource_type', 'compute')
+        ->whereIn('status', ['running', 'stopped'])
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    $instancesData = [];
+    foreach ($activeInstances as $resource) {
+        $config = json_decode($resource->configuration, true);
+        $instancesData[] = [
+            'instance_id'   => $resource->ministack_resource_id,
+            'instance_name' => $resource->instance_name,
+            'instance_type' => $config['instance_type'] ?? 'unknown',
+            'status'        => $resource->status,
+            'hourly_cost'   => $resource->hourly_cost,
+            'launched_at'   => $resource->rent_start_date,
+        ];
+    }
+
+    // 6. Return view with all dynamic values bundled
     return view('dashboard', [
         'totalResources' => $totalResources,
         'activeServices' => $activeServices,
         'monthlyBill'    => $monthlyBill,
         'bucketsData'    => $bucketsData,
         'storagePlans'   => $storagePlans,
+        'computePlans'   => $computePlans,
+        'instancesData'  => $instancesData,,
         'userCredential' => $userCredential
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
@@ -121,6 +153,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/s3/download/{bucket}/{key}', [S3Controller::class, 'downloadFile'])->name('s3.downloadFile');
     Route::post('/s3/delete-file', [S3Controller::class, 'deleteFile'])->name('s3.deleteFile');
     Route::post('/s3/delete-bucket', [S3Controller::class, 'deleteBucket'])->name('s3.deleteBucket');
+
+    // --- EC2 Routes ---
+    Route::post('/ec2/launch', [Ec2Controller::class, 'launchInstance'])->name('ec2.launch');
+    Route::post('/ec2/list', [Ec2Controller::class, 'listInstances'])->name('ec2.list');
+    Route::post('/ec2/stop', [Ec2Controller::class, 'stopInstance'])->name('ec2.stop');
+    Route::post('/ec2/start', [Ec2Controller::class, 'startInstance'])->name('ec2.start');
+    Route::post('/ec2/terminate', [Ec2Controller::class, 'terminateInstance'])->name('ec2.terminate');
 
     Route::post('/s3/generate-credentials', [S3Controller::class, 'generateCredentials'])->name('s3.generateCredentials');
 });

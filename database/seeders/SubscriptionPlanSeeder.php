@@ -45,6 +45,40 @@ class SubscriptionPlanSeeder extends Seeder
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
+            ],
+            // EC2 Compute Plans
+            [
+                'plan_name' => 'Basic Compute (t2.micro)',
+                'service_type' => 'iaas',
+                'storage_quota_gb' => 0,
+                'compute_quota_vcpu' => 1,
+                'network_quota_vpc' => 0,
+                'monthly_price' => 8.00,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'plan_name' => 'Pro Compute (t2.small)',
+                'service_type' => 'iaas',
+                'storage_quota_gb' => 0,
+                'compute_quota_vcpu' => 2,
+                'network_quota_vpc' => 0,
+                'monthly_price' => 20.00,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'plan_name' => 'Premium Compute (t2.medium)',
+                'service_type' => 'iaas',
+                'storage_quota_gb' => 0,
+                'compute_quota_vcpu' => 4,
+                'network_quota_vpc' => 0,
+                'monthly_price' => 50.00,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]
         ]);
     }

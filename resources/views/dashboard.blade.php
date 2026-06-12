@@ -304,6 +304,114 @@
                 </div>
             </div>
 
+            {{-- ============================================================ --}}
+            {{-- EC2 INSTANCE MANAGEMENT SECTION --}}
+            {{-- ============================================================ --}}
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6 border-l-4 border-orange-500">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">EC2 Compute Management</h3>
+                </div>
+
+                @if(session('success') && str_contains(session('success'), 'EC2'))
+                    <div class="mb-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">{{ session('success') }}</div>
+                @endif
+                @if(session('error') && str_contains(session('error'), 'EC2'))
+                    <div class="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">{{ session('error') }}</div>
+                @endif
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {{-- Launch Instance Form --}}
+                    <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 hover:shadow-md transition">
+                        <h4 class="font-medium text-gray-800 mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            Launch New Instance
+                        </h4>
+                        <form action="{{ route('ec2.launch') }}" method="POST">
+                            @csrf
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Instance Name</label>
+                            <p class="text-xs text-gray-500 mb-2">Letters, numbers, dots, hyphens, underscores.</p>
+                            <input type="text" name="instance_name" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 mb-4" placeholder="e.g., web-server-01" required>
+
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Compute Plan</label>
+                            <select name="plan_id" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 mb-4" required>
+                                <option value="" disabled selected>Select a plan...</option>
+                                @foreach($computePlans as $plan)
+                                    <option value="{{ $plan->id }}">{{ $plan->plan_name }} ({{ $plan->compute_quota_vcpu }} vCPU) - ${{ $plan->monthly_price }}/mo</option>
+                                @endforeach
+                            </select>
+
+                            <button type="submit" class="w-full bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition shadow-sm">Launch in MiniStack</button>
+                        </form>
+                    </div>
+
+                    {{-- Instance Explorer --}}
+                    <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 hover:shadow-md transition">
+                        <h4 class="font-medium text-gray-800 mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Instance Explorer
+                        </h4>
+
+                        <button type="button" id="ec2-refresh-btn" class="w-full bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition mb-4">Refresh Instances</button>
+
+                        <div id="ec2-instance-container" class="bg-white border rounded-md overflow-hidden">
+                            <table class="w-full text-sm text-left text-gray-500">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                                    <tr>
+                                        <th class="px-3 py-3">Name</th>
+                                        <th class="px-3 py-3">Instance ID</th>
+                                        <th class="px-3 py-3">Type</th>
+                                        <th class="px-3 py-3">State</th>
+                                        <th class="px-3 py-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ec2-instance-body">
+                                    @if(count($instancesData) > 0)
+                                        @foreach($instancesData as $inst)
+                                            <tr class="border-b">
+                                                <td class="px-3 py-3 font-medium text-gray-900">{{ $inst['instance_name'] }}</td>
+                                                <td class="px-3 py-3 font-mono text-xs">{{ $inst['instance_id'] }}</td>
+                                                <td class="px-3 py-3">{{ $inst['instance_type'] }}</td>
+                                                <td class="px-3 py-3">
+                                                    @if($inst['status'] === 'running')
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">● running</span>
+                                                    @else
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">● stopped</span>
+                                                    @endif
+                                                </td>
+                                                <td class="px-3 py-3 text-right">
+                                                    <div class="flex justify-end gap-1">
+                                                        @if($inst['status'] === 'running')
+                                                            <form class="ec2-action-form" action="{{ route('ec2.stop') }}" method="POST">
+                                                                @csrf
+                                                                <input type="hidden" name="instance_id" value="{{ $inst['instance_id'] }}">
+                                                                <button type="submit" class="text-yellow-600 hover:underline text-xs">Stop</button>
+                                                            </form>
+                                                        @else
+                                                            <form class="ec2-action-form" action="{{ route('ec2.start') }}" method="POST">
+                                                                @csrf
+                                                                <input type="hidden" name="instance_id" value="{{ $inst['instance_id'] }}">
+                                                                <button type="submit" class="text-green-600 hover:underline text-xs">Start</button>
+                                                            </form>
+                                                        @endif
+                                                        <form class="ec2-action-form" action="{{ route('ec2.terminate') }}" method="POST" onsubmit="return confirm('WARNING: Terminate instance {{ $inst['instance_id'] }}? Billing will stop and this cannot be undone.');">
+                                                            @csrf
+                                                            <input type="hidden" name="instance_id" value="{{ $inst['instance_id'] }}">
+                                                            <button type="submit" class="text-red-600 hover:underline text-xs">Terminate</button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    @else
+                                        <tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">No active instances. Launch one to get started.</td></tr>
+                                    @endif
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div
                     class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition border-t-4 border-blue-500 flex flex-col justify-between">
@@ -370,55 +478,55 @@
                     window.userBucketsData = @json($bucketsData);
                 </script>
 
-                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-800">EC2 Compute (Template)</h3>
-                        <div class="bg-gray-100 rounded-full p-2">
-                            <svg class="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M13 7H7v6h6V7z" />
-                                <path fill-rule="evenodd"
-                                    d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2V2a1 1 0 112 0v1h1a2 2 0 012 2v1h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v1a2 2 0 01-2 2h-1v1a1 1 0 11-2 0v-1h-2v1a1 1 0 11-2 0v-1H7v1a1 1 0 11-2 0v-1H4a2 2 0 01-2-2v-1H1a1 1 0 110-2h1V9H1a1 1 0 010-2h1V7H1a1 1 0 110-2h1V4a2 2 0 012-2h1V2a1 1 0 010-2z" />
-                            </svg>
-                        </div>
-                    </div>
-
-                    <div class="space-y-3 mb-4">
-                        <div class="bg-gray-50 rounded p-3">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm font-medium text-gray-600">CPU Cores</span>
-                                <span class="text-xl font-bold text-gray-800">16 vCPU</span>
-                            </div>
-                            <div class="mt-2">
-                                <div class="flex justify-between text-xs mb-1">
-                                    <span class="text-gray-600">Usage</span>
-                                    <span class="text-gray-800">68%</span>
-                                </div>
-                                <div class="w-full bg-gray-200 rounded-full h-1.5">
-                                    <div class="bg-gray-600 h-1.5 rounded-full" style="width: 68%"></div>
-                                </div>
+                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition border-t-4 border-orange-500 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800">EC2 Compute Quotas</h3>
+                            <div class="bg-orange-50 text-orange-600 rounded-full px-3 py-1 text-xs font-bold">
+                                {{ count($instancesData) }} Active
                             </div>
                         </div>
 
-                        <div class="bg-gray-50 rounded p-3">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm font-medium text-gray-600">Memory</span>
-                                <span class="text-xl font-bold text-gray-800">64 GB</span>
-                            </div>
-                            <div class="mt-2">
-                                <div class="flex justify-between text-xs mb-1">
-                                    <span class="text-gray-600">Usage</span>
-                                    <span class="text-gray-800">52%</span>
+                        @if(count($instancesData) > 0)
+                            @php
+                                $totalVcpus = 0;
+                                $runningCount = 0;
+                                $stoppedCount = 0;
+                                foreach ($instancesData as $inst) {
+                                    $vcpu = match($inst['instance_type']) {
+                                        't2.micro' => 1,
+                                        't2.small' => 2,
+                                        't2.medium' => 4,
+                                        default => 1,
+                                    };
+                                    $totalVcpus += $vcpu;
+                                    if ($inst['status'] === 'running') $runningCount++;
+                                    else $stoppedCount++;
+                                }
+                            @endphp
+                            <div class="space-y-3 mb-4">
+                                <div class="bg-gray-50 rounded p-3">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm font-medium text-gray-600">Total vCPUs</span>
+                                        <span class="text-xl font-bold text-gray-800">{{ $totalVcpus }} vCPU</span>
+                                    </div>
                                 </div>
-                                <div class="w-full bg-gray-200 rounded-full h-1.5">
-                                    <div class="bg-gray-600 h-1.5 rounded-full" style="width: 52%"></div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-600">Active Instances</span>
-                            <span class="font-semibold text-gray-800">8</span>
-                        </div>
+                                <div class="flex justify-between text-sm bg-gray-50 rounded p-3">
+                                    <span class="text-gray-600">Running Instances</span>
+                                    <span class="font-semibold text-green-600">{{ $runningCount }}</span>
+                                </div>
+
+                                <div class="flex justify-between text-sm bg-gray-50 rounded p-3">
+                                    <span class="text-gray-600">Stopped Instances</span>
+                                    <span class="font-semibold text-yellow-600">{{ $stoppedCount }}</span>
+                                </div>
+                            </div>
+                        @else
+                            <div class="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-md">
+                                No active instances.<br>Launch one to see compute quotas here.
+                            </div>
+                        @endif
                     </div>
 
                     <div class="flex gap-2 pt-4 border-t border-gray-200">
@@ -431,7 +539,6 @@
                             View Details
                         </button>
                     </div>
-
                 </div>
 
                 <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
@@ -516,8 +623,8 @@
                         </div>
                         <div>
                             <p class="text-sm font-medium text-gray-800">EC2 Compute</p>
-                            <p class="text-xs text-yellow-600">In Progress</p>
-                            <p class="text-xs text-gray-500 mt-1">Backend services</p>
+                            <p class="text-xs text-green-600">Fully Operational</p>
+                            <p class="text-xs text-gray-500 mt-1">All systems nominal</p>
                         </div>
                     </div>
 
@@ -780,7 +887,129 @@
                 });
             }
 
-        });
+        // FEATURE 3: EC2 INSTANCE EXPLORER REFRESH
+        const ec2RefreshBtn = document.getElementById('ec2-refresh-btn');
+        if (ec2RefreshBtn) {
+            ec2RefreshBtn.addEventListener('click', function() {
+                const originalText = this.innerText;
+                this.innerText = 'Refreshing...';
+                this.disabled = true;
+
+                fetch('/ec2/list', {
+                    method: 'POST',
+                    headers: { 
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    this.innerText = originalText;
+                    this.disabled = false;
+
+                    if (data.success) {
+                        const tbody = document.getElementById('ec2-instance-body');
+                        tbody.innerHTML = ''; 
+
+                        if (data.instances.length === 0) {
+                            tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">No active instances. Launch one to get started.</td></tr>`;
+                        } else {
+                            data.instances.forEach(inst => {
+                                const stateBadge = inst.status === 'running' 
+                                    ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">● running</span>`
+                                    : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">● stopped</span>`;
+                                
+                                const actionBtn = inst.status === 'running'
+                                    ? `<form class="ec2-action-form" action="/ec2/stop" method="POST">
+                                            <input type="hidden" name="_token" value="${document.querySelector('input[name="_token"]').value}">
+                                            <input type="hidden" name="instance_id" value="${inst.instance_id}">
+                                            <button type="submit" class="text-yellow-600 hover:underline text-xs">Stop</button>
+                                        </form>`
+                                    : `<form class="ec2-action-form" action="/ec2/start" method="POST">
+                                            <input type="hidden" name="_token" value="${document.querySelector('input[name="_token"]').value}">
+                                            <input type="hidden" name="instance_id" value="${inst.instance_id}">
+                                            <button type="submit" class="text-green-600 hover:underline text-xs">Start</button>
+                                        </form>`;
+
+                                tbody.innerHTML += `
+                                    <tr class="border-b">
+                                        <td class="px-3 py-3 font-medium text-gray-900">${inst.instance_name}</td>
+                                        <td class="px-3 py-3 font-mono text-xs">${inst.instance_id}</td>
+                                        <td class="px-3 py-3">${inst.instance_type}</td>
+                                        <td class="px-3 py-3">${stateBadge}</td>
+                                        <td class="px-3 py-3 text-right">
+                                            <div class="flex justify-end gap-1">
+                                                ${actionBtn}
+                                                <form class="ec2-action-form" action="/ec2/terminate" method="POST" onsubmit="return confirm('WARNING: Terminate instance ${inst.instance_id}? Billing will stop and this cannot be undone.');">
+                                                    <input type="hidden" name="_token" value="${document.querySelector('input[name="_token"]').value}">
+                                                    <input type="hidden" name="instance_id" value="${inst.instance_id}">
+                                                    <button type="submit" class="text-red-600 hover:underline text-xs">Terminate</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
+                            });
+                            // Re-bind ajax forms for EC2 actions
+                            bindEc2ActionForms();
+                        }
+                    }
+                })
+                .catch(() => {
+                    this.innerText = originalText;
+                    this.disabled = false;
+                    alert('Network error while refreshing instances.');
+                });
+            });
+        }
+
+        // FEATURE 4: EC2 AJAX ACTIONS
+        function bindEc2ActionForms() {
+            const actionForms = document.querySelectorAll('.ec2-action-form');
+            actionForms.forEach(form => {
+                const newForm = form.cloneNode(true);
+                form.parentNode.replaceChild(newForm, form);
+                
+                newForm.addEventListener('submit', function(e) {
+                    if (this.onsubmit && !this.onsubmit()) {
+                        e.preventDefault();
+                        return; // Cancelled by confirm dialog
+                    }
+                    e.preventDefault();
+
+                    const formData = new FormData(newForm);
+                    const btn = newForm.querySelector('button');
+                    const originalText = btn.innerText;
+                    btn.innerText = '...';
+                    btn.disabled = true;
+                    
+                    fetch(newForm.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'Accept': 'application/json' }
+                    })
+                    .then(res => res.ok ? res.json() : Promise.reject('Server error'))
+                    .then(data => {
+                        if(data.success) {
+                            if (ec2RefreshBtn) ec2RefreshBtn.click(); // Auto-refresh table
+                        } else { 
+                            alert('Action failed.'); 
+                            btn.innerText = originalText;
+                            btn.disabled = false;
+                        }
+                    })
+                    .catch(() => { 
+                        alert('Error processing action.'); 
+                        btn.innerText = originalText;
+                        btn.disabled = false;
+                    });
+                });
+            });
+        }
+        
+        bindEc2ActionForms();
+
+    });
     </script>
 
 </x-app-layout>
