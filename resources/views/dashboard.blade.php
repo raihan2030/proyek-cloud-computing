@@ -613,13 +613,13 @@
                     </div>
 
                     <div class="flex gap-2 pt-4 border-t border-gray-200">
-                        <a href="#ec2-launch-form"
-                            class="flex-1 px-3 py-2 text-center bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition block">
-                            Manage
-                        </a>
                         <a href="#ec2-explorer-section"
+                            class="flex-1 px-3 py-2 text-center bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition block">
+                            Manage Instances
+                        </a>
+                        <a href="#ec2-launch-form"
                             class="flex-1 px-3 py-2 text-center bg-gray-100 text-gray-800 text-sm rounded-lg hover:bg-gray-200 transition block">
-                            View Details
+                            Launch New
                         </a>
                     </div>
                 </div>
