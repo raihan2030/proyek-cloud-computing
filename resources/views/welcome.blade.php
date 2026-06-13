@@ -1,110 +1,149 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CloudOS - Platform IaaS Terpercaya</title>
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet" />
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-gray-50">
+<body class="bg-[#0F0F0F] text-on-surface font-sans min-h-screen selection:bg-primary-container selection:text-on-primary-container relative overflow-x-hidden antialiased">
+    <!-- Ambient Backdrop Glows -->
+    <div class="absolute top-0 left-1/4 w-[500px] h-[500px] bg-white/5 rounded-full blur-[150px] pointer-events-none"></div>
+    <div class="absolute top-1/2 right-1/4 w-[600px] h-[600px] bg-white/3 rounded-full blur-[180px] pointer-events-none"></div>
+
     <!-- Navigation Header -->
-    <nav class="bg-white border-b border-gray-200">
+    <nav class="bg-surface/80 backdrop-blur-md border-b border-outline-variant fixed top-0 w-full z-50 transition-all">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <!-- Logo -->
-                <div class="flex items-center space-x-2">
-                    <div class="w-8 h-8 bg-gray-800 rounded-lg"></div>
-                    <span class="text-xl font-bold text-gray-900">CloudOS</span>
+                <div class="flex items-center space-x-3">
+                    <span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">cloud</span>
+                    <span class="text-lg font-bold text-primary tracking-tight">CloudOS</span>
                 </div>
 
                 <!-- Navigation Links -->
-                <div class="hidden md:flex items-center space-x-8">
+                <div class="hidden md:flex items-center space-x-6">
                     @auth
-                        <a href="{{ route('dashboard') }}" class="text-gray-600 hover:text-gray-900 font-medium transition">Dashboard</a>
+                        <a href="{{ route('dashboard') }}" class="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors">Dashboard</a>
                         <form method="POST" action="{{ route('logout') }}" class="inline">
                             @csrf
-                            <button type="submit" class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition">Logout</button>
+                            <button type="submit" class="btn-primary text-xs uppercase tracking-wider px-4 py-2 rounded">
+                                Logout
+                            </button>
                         </form>
                     @else
-                        <a href="{{ route('login') }}" class="text-gray-600 hover:text-gray-900 font-medium transition">Login</a>
-                        <a href="{{ route('register') }}" class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition">Register</a>
+                        <a href="{{ route('login') }}" class="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors">Login</a>
+                        <a href="{{ route('register') }}" class="btn-primary text-xs uppercase tracking-wider px-4 py-2 rounded">
+                            Register
+                        </a>
                     @endauth
                 </div>
 
                 <!-- Mobile Menu Button -->
                 <div class="md:hidden flex items-center">
-                    <button class="text-gray-600 hover:text-gray-900" id="mobile-menu-btn">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                        </svg>
+                    <button class="text-on-surface-variant hover:text-primary transition-colors" id="mobile-menu-btn" aria-label="Toggle menu">
+                        <span class="material-symbols-outlined text-2xl">menu</span>
                     </button>
                 </div>
             </div>
         </div>
+        
+        <!-- Mobile Dropdown Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-surface border-b border-outline-variant px-4 py-4 space-y-3">
+            @auth
+                <a href="{{ route('dashboard') }}" class="block text-sm font-semibold text-on-surface-variant hover:text-primary py-2">Dashboard</a>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="w-full btn-primary text-center py-2 rounded text-xs uppercase tracking-wider">
+                        Logout
+                    </button>
+                </form>
+            @else
+                <a href="{{ route('login') }}" class="block text-sm font-semibold text-on-surface-variant hover:text-primary py-2">Login</a>
+                <a href="{{ route('register') }}" class="block w-full btn-primary text-center py-2 rounded text-xs uppercase tracking-wider">
+                    Register
+                </a>
+            @endauth
+        </div>
     </nav>
 
     <!-- Hero Section -->
-    <section class="bg-white py-20 md:py-32">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center">
-                <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4">
-                    Selamat Datang di CloudOS
-                </h1>
-                <p class="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-                    Platform Infrastructure as a Service (IaaS) terpercaya untuk bisnis modern. Skalabilitas, keamanan, dan performa tinggi dalam satu solusi cloud yang komprehensif.
-                </p>
+    <section class="pt-32 pb-20 md:pt-48 md:pb-32 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="inline-flex items-center gap-2 bg-surface-container-highest border border-outline-variant px-3 py-1 rounded-full text-[10px] font-bold font-mono tracking-widest text-primary uppercase mb-6">
+                <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                Next-Gen IaaS Engine
+            </div>
+            <h1 class="text-4xl md:text-6xl font-bold text-primary tracking-tight mb-6 max-w-4xl mx-auto leading-tight">
+                Transformasi Digital Bisnis Anda dengan CloudOS
+            </h1>
+            <p class="text-sm md:text-base text-on-surface-variant mb-10 max-w-2xl mx-auto leading-relaxed">
+                Platform Infrastructure as a Service (IaaS) dengan performa ekstrim, skalabilitas instan, dan kontrol total. Dibangun untuk developer dan bisnis modern yang mengutamakan kecepatan dan reliabilitas.
+            </p>
 
-                <!-- CTA Buttons -->
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    @guest
-                        <a href="{{ route('register') }}" class="px-8 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition font-semibold">
-                            Mulai Sekarang
-                        </a>
-                        <a href="{{ route('login') }}" class="px-8 py-3 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition font-semibold">
-                            Masuk Akun
-                        </a>
-                    @else
-                        <a href="{{ route('dashboard') }}" class="px-8 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition font-semibold">
-                            Buka Dashboard
-                        </a>
-                    @endguest
-                </div>
+            <!-- CTA Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                @guest
+                    <a href="{{ route('register') }}" class="btn-primary px-8 py-3 text-xs uppercase tracking-wider rounded w-full sm:w-auto text-center font-bold">
+                        Mulai Sekarang
+                    </a>
+                    <a href="{{ route('login') }}" class="btn-secondary px-8 py-3 text-xs uppercase tracking-wider rounded w-full sm:w-auto text-center font-bold">
+                        Masuk Akun
+                    </a>
+                @else
+                    <a href="{{ route('dashboard') }}" class="btn-primary px-8 py-3 text-xs uppercase tracking-wider rounded w-full sm:w-auto text-center font-bold">
+                        Buka Dashboard
+                    </a>
+                @endguest
             </div>
         </div>
     </section>
 
     <!-- Features Section -->
-    <section class="py-20 md:py-32 bg-gray-100">
+    <section class="py-20 bg-surface border-y border-outline-variant relative">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-12">
-                Layanan Unggulan Kami
-            </h2>
+            <div class="text-center mb-16">
+                <h2 class="text-2xl md:text-3xl font-bold text-primary tracking-tight">Layanan Unggulan Kami</h2>
+                <p class="text-xs text-on-surface-variant mt-2 font-mono">High-performance building blocks for infrastructure.</p>
+            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-lg">
                 <!-- S3 Storage Card -->
-                <div class="bg-white rounded-lg p-8 border border-gray-200 hover:border-gray-400 transition">
-                    <div class="w-12 h-12 bg-gray-800 rounded-lg mb-4"></div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">S3 Storage</h3>
-                    <p class="text-gray-600">
-                        Penyimpanan cloud yang scalable dan aman dengan redundansi data multi-region. Akses cepat dan transfer unlimited untuk semua kebutuhan Anda.
+                <div class="bg-surface-container border border-outline-variant rounded-lg p-lg hover:border-primary transition-all duration-300 group">
+                    <div class="w-10 h-10 bg-primary/10 border border-outline-variant rounded flex items-center justify-center text-primary mb-6 transition-colors group-hover:bg-primary group-hover:text-on-primary-fixed">
+                        <span class="material-symbols-outlined text-lg">hard_drive</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-primary mb-3">S3 Storage</h3>
+                    <p class="text-xs text-on-surface-variant leading-relaxed">
+                        Penyimpanan cloud object yang scalable, terisolasi, dan aman dengan redundansi data. Didukung integrasi API access key.
                     </p>
                 </div>
 
                 <!-- EC2 Compute Card -->
-                <div class="bg-white rounded-lg p-8 border border-gray-200 hover:border-gray-400 transition">
-                    <div class="w-12 h-12 bg-gray-700 rounded-lg mb-4"></div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">EC2 Compute</h3>
-                    <p class="text-gray-600">
-                        Instance kompute yang fleksibel dengan berbagai pilihan ukuran dan tipe. Skalabilitas otomatis dan monitoring real-time untuk performa optimal.
+                <div class="bg-surface-container border border-outline-variant rounded-lg p-lg hover:border-primary transition-all duration-300 group">
+                    <div class="w-10 h-10 bg-primary/10 border border-outline-variant rounded flex items-center justify-center text-primary mb-6 transition-colors group-hover:bg-primary group-hover:text-on-primary-fixed">
+                        <span class="material-symbols-outlined text-lg">dns</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-primary mb-3">EC2 Compute</h3>
+                    <p class="text-xs text-on-surface-variant leading-relaxed">
+                        Instance compute vCPU privat yang dapat Anda kelola secara langsung (Start, Stop, Terminate) di dalam dashboard.
                     </p>
                 </div>
 
                 <!-- VPS Network Card -->
-                <div class="bg-white rounded-lg p-8 border border-gray-200 hover:border-gray-400 transition">
-                    <div class="w-12 h-12 bg-gray-600 rounded-lg mb-4"></div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">VPS Network</h3>
-                    <p class="text-gray-600">
-                        Jaringan virtual private yang dedicated dan aman. Bandwidth unlimited dengan latency rendah untuk konektivitas optimal.
+                <div class="bg-surface-container border border-outline-variant rounded-lg p-lg hover:border-primary transition-all duration-300 group">
+                    <div class="w-10 h-10 bg-primary/10 border border-outline-variant rounded flex items-center justify-center text-primary mb-6 transition-colors group-hover:bg-primary group-hover:text-on-primary-fixed">
+                        <span class="material-symbols-outlined text-lg">lan</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-primary mb-3">VPS Network</h3>
+                    <p class="text-xs text-on-surface-variant leading-relaxed">
+                        Jaringan virtual private terdedikasi untuk perlindungan latensi rendah, bandwidth optimal, serta throughput tinggi.
                     </p>
                 </div>
             </div>
@@ -112,82 +151,82 @@
     </section>
 
     <!-- Stats Section -->
-    <section class="py-20 md:py-32 bg-white">
+    <section class="py-20 relative">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-lg text-center">
                 <!-- Stat 1: Customers -->
-                <div>
-                    <p class="text-4xl md:text-5xl font-bold text-gray-900 mb-2">5000+</p>
-                    <p class="text-lg text-gray-600">Pelanggan Puas</p>
+                <div class="stat-card bg-surface-container border border-outline-variant p-lg rounded">
+                    <p class="text-3xl md:text-4xl font-bold text-primary tracking-tight mb-2">5,000+</p>
+                    <p class="text-xs font-mono text-on-surface-variant uppercase tracking-wider">Pelanggan Puas</p>
                 </div>
 
                 <!-- Stat 2: Uptime -->
-                <div>
-                    <p class="text-4xl md:text-5xl font-bold text-gray-900 mb-2">99.9%</p>
-                    <p class="text-lg text-gray-600">Uptime Guarantee</p>
+                <div class="stat-card bg-surface-container border border-outline-variant p-lg rounded">
+                    <p class="text-3xl md:text-4xl font-bold text-primary tracking-tight mb-2">99.9%</p>
+                    <p class="text-xs font-mono text-on-surface-variant uppercase tracking-wider">Uptime SLA</p>
                 </div>
 
                 <!-- Stat 3: Support -->
-                <div>
-                    <p class="text-4xl md:text-5xl font-bold text-gray-900 mb-2">24/7</p>
-                    <p class="text-lg text-gray-600">Support Team</p>
+                <div class="stat-card bg-surface-container border border-outline-variant p-lg rounded">
+                    <p class="text-3xl md:text-4xl font-bold text-primary tracking-tight mb-2">24/7</p>
+                    <p class="text-xs font-mono text-on-surface-variant uppercase tracking-wider">Expert Support</p>
                 </div>
 
                 <!-- Stat 4: Data Centers -->
-                <div>
-                    <p class="text-4xl md:text-5xl font-bold text-gray-900 mb-2">50+</p>
-                    <p class="text-lg text-gray-600">Data Centers</p>
+                <div class="stat-card bg-surface-container border border-outline-variant p-lg rounded">
+                    <p class="text-3xl md:text-4xl font-bold text-primary tracking-tight mb-2">50+</p>
+                    <p class="text-xs font-mono text-on-surface-variant uppercase tracking-wider">Data Centers</p>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="bg-gray-900 text-gray-400 py-12">
+    <footer class="bg-surface border-t border-outline-variant text-on-surface-variant py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-lg mb-12">
                 <!-- About -->
-                <div>
-                    <div class="flex items-center space-x-2 mb-4">
-                        <div class="w-8 h-8 bg-gray-700 rounded-lg"></div>
-                        <span class="text-white font-bold">CloudOS</span>
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-3 text-primary">
+                        <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">cloud</span>
+                        <span class="font-bold tracking-tight">CloudOS</span>
                     </div>
-                    <p class="text-sm">Platform IaaS terpercaya untuk transformasi digital bisnis Anda.</p>
+                    <p class="text-xs leading-relaxed">Platform IaaS terpercaya untuk transformasi digital infrastruktur bisnis Anda.</p>
                 </div>
 
                 <!-- Products -->
                 <div>
-                    <h4 class="text-white font-semibold mb-4">Produk</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="hover:text-white transition">S3 Storage</a></li>
-                        <li><a href="#" class="hover:text-white transition">EC2 Compute</a></li>
-                        <li><a href="#" class="hover:text-white transition">VPS Network</a></li>
+                    <h4 class="text-xs font-bold text-primary uppercase tracking-wider mb-4 font-mono">Layanan</h4>
+                    <ul class="space-y-2 text-xs">
+                        <li><a href="#" class="hover:text-primary transition-colors">S3 Storage</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">EC2 Compute</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">VPS Network</a></li>
                     </ul>
                 </div>
 
                 <!-- Company -->
                 <div>
-                    <h4 class="text-white font-semibold mb-4">Perusahaan</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="hover:text-white transition">Tentang Kami</a></li>
-                        <li><a href="#" class="hover:text-white transition">Blog</a></li>
-                        <li><a href="#" class="hover:text-white transition">Karir</a></li>
+                    <h4 class="text-xs font-bold text-primary uppercase tracking-wider mb-4 font-mono">Perusahaan</h4>
+                    <ul class="space-y-2 text-xs">
+                        <li><a href="#" class="hover:text-primary transition-colors">Tentang Kami</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Blog</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Karir</a></li>
                     </ul>
                 </div>
 
                 <!-- Legal -->
                 <div>
-                    <h4 class="text-white font-semibold mb-4">Legal</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="hover:text-white transition">Privacy Policy</a></li>
-                        <li><a href="#" class="hover:text-white transition">Terms of Service</a></li>
-                        <li><a href="#" class="hover:text-white transition">Security</a></li>
+                    <h4 class="text-xs font-bold text-primary uppercase tracking-wider mb-4 font-mono">Legalitas</h4>
+                    <ul class="space-y-2 text-xs">
+                        <li><a href="#" class="hover:text-primary transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Terms of Service</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">Security Audit</a></li>
                     </ul>
                 </div>
             </div>
 
             <!-- Copyright -->
-            <div class="border-t border-gray-800 pt-8 text-center text-sm">
+            <div class="border-t border-outline-variant/30 pt-8 text-center text-xs">
                 <p>&copy; 2024 CloudOS. Semua hak dilindungi. Powered by CloudOS Infrastructure.</p>
             </div>
         </div>
@@ -195,10 +234,13 @@
 
     <script>
         // Mobile menu toggle
-        document.getElementById('mobile-menu-btn').addEventListener('click', function() {
-            const menu = document.querySelector('nav');
-            menu.classList.toggle('mobile-menu-open');
-        });
+        const menuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (menuBtn && mobileMenu) {
+            menuBtn.addEventListener('click', function() {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
     </script>
 </body>
 </html>
