@@ -466,8 +466,7 @@
                                                     <code class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600 block w-full truncate max-w-[150px]">{{ $res->ministack_resource_id }}</code>
                                                 </td>
                                                 <td class="px-6 py-4 text-right">
-                                                    <span class="text-sm font-semibold text-slate-700 block">Rp {{ number_format($res->hourly_cost * 15000, 2, ',', '.') }}</span>
-                                                    <span class="text-[10px] text-slate-400 block mt-0.5">${{ number_format($res->hourly_cost, 4) }}/hr</span>
+                                                    <span class="text-sm font-semibold text-slate-700 block">Rp {{ number_format($res->hourly_cost, 2, ',', '.') }}/jam</span>
                                                 </td>
                                                 <td class="px-6 py-4 text-center">
                                                     <span class="inline-flex px-2.5 py-1 text-xs font-bold rounded-full 

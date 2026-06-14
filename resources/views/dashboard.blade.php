@@ -109,7 +109,7 @@
                         <div>
                             <p class="text-sm font-medium text-black-500 bold uppercase tracking-wider">Monthly Spend
                             </p>
-                            <h4 class="text-3xl font-bold text-gray-800 mt-1">${{ number_format($monthlyBill, 2) }}
+                            <h4 class="text-3xl font-bold text-gray-800 mt-1">Rp {{ number_format($monthlyBill, 2, ',', '.') }}
                             </h4>
                         </div>
                         <div class="p-3 bg-amber-50 text-amber-600 rounded-full">
@@ -177,7 +177,7 @@
                                 @foreach ($storagePlans as $plan)
                                     <option value="{{ $plan->id }}">{{ $plan->plan_name }}
                                         ({{ $plan->storage_quota_gb }}GB)
-                                        - ${{ $plan->monthly_price }}/mo</option>
+                                        - Rp {{ number_format($plan->monthly_price, 0, ',', '.') }}/mo</option>
                                 @endforeach
                             </select>
 
@@ -411,7 +411,7 @@
                                 <option value="" disabled selected>Select a plan...</option>
                                 @foreach ($computePlans as $plan)
                                     <option value="{{ $plan->id }}">{{ $plan->plan_name }}
-                                        ({{ $plan->compute_quota_vcpu }} vCPU) - ${{ $plan->monthly_price }}/mo
+                                        ({{ $plan->compute_quota_vcpu }} vCPU) - Rp {{ number_format($plan->monthly_price, 0, ',', '.') }}/mo
                                     </option>
                                 @endforeach
                             </select>

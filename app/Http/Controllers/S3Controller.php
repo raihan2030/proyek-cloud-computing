@@ -25,7 +25,7 @@ class S3Controller extends Controller
 
         // Fetch the plan to dynamically calculate the hourly billing cost
         $plan = DB::table('subscription_plans')->where('id', $planId)->first();
-        $hourlyCost = $plan ? ($plan->monthly_price / 720) : 0.007;
+        $hourlyCost = $plan ? ($plan->monthly_price / 720) : 105.00;
 
         try {
             $s3Client = Storage::disk('s3')->getClient();

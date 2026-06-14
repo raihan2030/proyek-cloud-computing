@@ -60,7 +60,7 @@ class Ec2Controller extends Controller
 
         // Fetch the chosen plan
         $plan = DB::table('subscription_plans')->where('id', $planId)->first();
-        $hourlyCost = $plan ? ($plan->monthly_price / 720) : 0.011;
+        $hourlyCost = $plan ? ($plan->monthly_price / 720) : 165.00;
         $instanceType = $this->mapInstanceType($plan->compute_quota_vcpu ?? 1);
 
         try {
