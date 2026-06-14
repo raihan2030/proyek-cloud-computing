@@ -390,7 +390,7 @@
                             </select>
 
                             <button type="submit"
-                                class="w-full bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition shadow-sm">Launch
+                                class="w-full bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition shadow-sm">Launch
                                 in MiniStack</button>
                         </form>
                     </div>

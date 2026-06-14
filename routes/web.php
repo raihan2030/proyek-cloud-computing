@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\S3Controller;
 use App\Http\Controllers\Ec2Controller;
+use App\Http\Controllers\AdminController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -13,9 +14,31 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// INI ROUTE ADMIN MILIK TIM-MU YANG DIKEMBALIKAN:
-Route::get('/admin', function () {
-    return view('admin');
+// Admin Route Group protected by auth and admin middleware
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', [AdminController::class, 'index'])->name('index');
+    
+    // Users
+    Route::get('/users', [AdminController::class, 'users'])->name('users');
+    Route::post('/users/{id}/balance', [AdminController::class, 'updateBalance'])->name('users.balance');
+    Route::post('/users/{id}/role', [AdminController::class, 'updateRole'])->name('users.role');
+    Route::delete('/users/{id}', [AdminController::class, 'deleteUser'])->name('users.delete');
+    
+    // Plans
+    Route::get('/plans', [AdminController::class, 'plans'])->name('plans');
+    Route::post('/plans', [AdminController::class, 'createPlan'])->name('plans.create');
+    Route::post('/plans/{id}/toggle', [AdminController::class, 'togglePlan'])->name('plans.toggle');
+    Route::delete('/plans/{id}', [AdminController::class, 'deletePlan'])->name('plans.delete');
+    
+    // Resources
+    Route::get('/resources', [AdminController::class, 'resources'])->name('resources');
+    
+    // Payments
+    Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
+    Route::post('/payments/{id}/status', [AdminController::class, 'updatePaymentStatus'])->name('payments.status');
+    
+    // Logs
+    Route::get('/logs', [AdminController::class, 'logs'])->name('logs');
 });
 
 Route::get('/dashboard', function () {
