@@ -129,4 +129,41 @@ class AdminDashboardTest extends TestCase
         $response->assertSessionHas('error');
         $this->assertEquals('admin', DB::table('users')->where('id', $admin->id)->value('role'));
     }
+
+    /**
+     * Admin can create a subscription plan.
+     */
+    public function test_admin_can_create_subscription_plan(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $serviceId = DB::table('iaas_services')->insertGetId([
+            'service_name' => 'MiniStack Compute (EC2) Test',
+            'service_category' => 'Compute',
+            'is_available' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->post('/admin/plans', [
+            'service_id' => $serviceId,
+            'plan_name' => 'Super Compute Plan',
+            'storage_quota_gb' => 0,
+            'compute_quota_vcpu' => 8,
+            'network_quota_vpc' => 0,
+            'monthly_price' => 750000.00,
+            'description' => 'Super fast vCPU cores'
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect();
+
+        $plan = DB::table('subscription_plans')->where('plan_name', 'Super Compute Plan')->first();
+        $this->assertNotNull($plan);
+        $this->assertEquals(8, $plan->compute_quota_vcpu);
+        $this->assertEquals(0, $plan->network_quota_vpc);
+        $this->assertEquals(0, $plan->storage_quota_gb);
+    }
 }

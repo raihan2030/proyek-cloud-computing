@@ -4,20 +4,36 @@
             
             <!-- Success / Error Alerts -->
             @if(session('success'))
-                <div class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-r-lg shadow-sm flex items-center">
-                    <svg class="w-5 h-5 text-emerald-600 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span class="text-sm font-medium text-emerald-800">{{ session('success') }}</span>
+                <div x-data="{ show: true }" x-show="show" x-transition
+                     class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-r-lg shadow-sm flex items-center justify-between">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-emerald-600 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span class="text-sm font-medium text-emerald-800">{{ session('success') }}</span>
+                    </div>
+                    <button @click="show = false" class="text-emerald-500 hover:text-emerald-700 ml-4 shrink-0 transition focus:outline-none" title="Tutup">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
             @endif
 
             @if(session('error'))
-                <div class="mb-6 p-4 bg-rose-50 border-l-4 border-rose-500 rounded-r-lg shadow-sm flex items-center">
-                    <svg class="w-5 h-5 text-rose-600 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span class="text-sm font-medium text-rose-800">{{ session('error') }}</span>
+                <div x-data="{ show: true }" x-show="show" x-transition
+                     class="mb-6 p-4 bg-rose-50 border-l-4 border-rose-500 rounded-r-lg shadow-sm flex items-center justify-between">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-rose-600 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span class="text-sm font-medium text-rose-800">{{ session('error') }}</span>
+                    </div>
+                    <button @click="show = false" class="text-rose-500 hover:text-rose-700 ml-4 shrink-0 transition focus:outline-none" title="Tutup">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
             @endif
 
@@ -373,10 +389,10 @@
 
                                     <div>
                                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nama Layanan IaaS</label>
-                                        <select name="service_id" class="w-full border-slate-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none" required>
+                                        <select id="service-select" name="service_id" class="w-full border-slate-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none" required>
                                             <option value="" disabled selected>-- Pilih Layanan --</option>
                                             @foreach($services as $svc)
-                                                <option value="{{ $svc->id }}">{{ $svc->service_name }} ({{ $svc->service_category }})</option>
+                                                <option value="{{ $svc->id }}" data-category="{{ $svc->service_category }}">{{ $svc->service_name }} ({{ $svc->service_category }})</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -386,24 +402,21 @@
                                         <input type="text" name="plan_name" placeholder="Contoh: Premium Storage 200GB" class="w-full border-slate-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none" required>
                                     </div>
 
-                                    <div>
+                                    <div id="storage-quota-container" style="display: none;">
                                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Kapasitas Penyimpanan (GB)</label>
-                                        <input type="number" name="storage_quota_gb" value="0" min="0" class="w-full border-slate-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none" required>
+                                        <input type="number" id="storage_quota_input" name="storage_quota_gb" placeholder="0" min="0" class="w-full border-slate-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none">
                                     </div>
 
-                                    <div>
+                                    <div id="compute-quota-container" style="display: none;">
                                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Compute Quota (vCPU)</label>
-                                        <input type="number" name="compute_quota_vcpu" value="0" min="0" class="w-full border-slate-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none" required>
+                                        <input type="number" id="compute_quota_input" name="compute_quota_vcpu" placeholder="0" min="0" class="w-full border-slate-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none">
                                     </div>
 
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Network Quota (VPC)</label>
-                                        <input type="number" name="network_quota_vpc" value="0" min="0" class="w-full border-slate-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none" required>
-                                    </div>
+                                    <input type="hidden" name="network_quota_vpc" value="0">
 
                                     <div>
                                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Harga Bulanan (Rp)</label>
-                                        <input type="number" name="monthly_price" value="0" min="0" step="0.01" class="w-full border-slate-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none" required>
+                                        <input type="number" name="monthly_price" placeholder="0" min="0" step="0.01" class="w-full border-slate-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none" required>
                                     </div>
 
                                     <div class="md:col-span-2">
@@ -614,4 +627,44 @@
             </div>
         </div>
     </div>
+
+    <!-- Toggle plan quota fields based on category -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const serviceSelect = document.getElementById('service-select');
+            const storageContainer = document.getElementById('storage-quota-container');
+            const computeContainer = document.getElementById('compute-quota-container');
+            const storageInput = document.getElementById('storage_quota_input');
+            const computeInput = document.getElementById('compute_quota_input');
+
+            function toggleQuotaFields() {
+                if (!serviceSelect) return;
+                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+                if (!selectedOption || serviceSelect.value === "") {
+                    storageContainer.style.display = 'none';
+                    computeContainer.style.display = 'none';
+                    return;
+                }
+
+                const category = selectedOption.getAttribute('data-category');
+                if (category === 'Storage') {
+                    storageContainer.style.display = 'block';
+                    computeContainer.style.display = 'none';
+                    computeInput.value = '0';
+                } else if (category === 'Compute') {
+                    storageContainer.style.display = 'none';
+                    computeContainer.style.display = 'block';
+                    storageInput.value = '0';
+                } else {
+                    storageContainer.style.display = 'none';
+                    computeContainer.style.display = 'none';
+                }
+            }
+
+            if (serviceSelect) {
+                serviceSelect.addEventListener('change', toggleQuotaFields);
+                toggleQuotaFields(); // Initial run
+            }
+        });
+    </script>
 </x-app-layout>

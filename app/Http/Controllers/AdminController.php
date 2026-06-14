@@ -184,11 +184,16 @@ class AdminController extends Controller
         ]);
     }
 
-    /**
-     * Create subscription plan
-     */
     public function createPlan(Request $request)
     {
+        // Sanitize numeric inputs before validation to remove leading zeros or handle empty strings
+        $request->merge([
+            'storage_quota_gb' => $request->filled('storage_quota_gb') ? (int)$request->storage_quota_gb : 0,
+            'compute_quota_vcpu' => $request->filled('compute_quota_vcpu') ? (int)$request->compute_quota_vcpu : 0,
+            'network_quota_vpc' => $request->filled('network_quota_vpc') ? (int)$request->network_quota_vpc : 0,
+            'monthly_price' => $request->filled('monthly_price') ? (float)$request->monthly_price : 0.0,
+        ]);
+
         $request->validate([
             'service_id' => 'required|exists:iaas_services,id',
             'plan_name' => 'required|string|max:255',
