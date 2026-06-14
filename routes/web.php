@@ -11,7 +11,15 @@ use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 Route::get('/', function () {
-    return view('welcome');
+    $data = [];
+    if (Auth::check()) {
+        $userId = Auth::id();
+        $data['activeResourcesCount'] = DB::table('provisioned_resources')
+            ->where('user_id', $userId)
+            ->where('status', 'running')
+            ->count();
+    }
+    return view('welcome', $data);
 });
 
 // Admin Route Group protected by auth and admin middleware
