@@ -317,4 +317,66 @@ class S3Controller extends Controller
             return back()->with('error', 'Gagal memproses kredensial: ' . $e->getMessage());
         }
     }
+
+    public function modifyPlan(Request $request)
+    {
+        $request->validate([
+            'bucket_name'    => 'required|string',
+            'target_plan_id' => 'required|exists:subscription_plans,id',
+        ]);
+
+        $bucketName = $request->bucket_name;
+        $targetPlanId = $request->target_plan_id;
+        $userId = Auth::id();
+
+        // 1. Fetch the new plan details from subscription_plans
+        $plan = DB::table('subscription_plans')->where('id', $targetPlanId)->first();
+        if (!$plan) {
+            return back()->with('error', 'Plan target tidak ditemukan.');
+        }
+
+        // 2. Update the user_subscriptions table (if it exists)
+        if (\Illuminate\Support\Facades\Schema::hasTable('user_subscriptions')) {
+            DB::table('user_subscriptions')
+                ->where('ministack_bucket_name', $bucketName)
+                ->where('user_id', $userId)
+                ->update([
+                    'plan_id' => $targetPlanId,
+                    'remaining_storage_quota_gb' => $plan->storage_quota_gb,
+                    'updated_at' => now()
+                ]);
+        }
+
+        // 3. Update the provisioned_resources table
+        $hourlyCost = $plan->monthly_price / 720;
+
+        DB::table('provisioned_resources')
+            ->where('ministack_resource_id', $bucketName)
+            ->where('user_id', $userId)
+            ->where('resource_type', 'storage')
+            ->update([
+                'plan_id'     => $targetPlanId,
+                'hourly_cost' => round($hourlyCost, 5),
+                'updated_at'  => now()
+            ]);
+
+        // Log the activity
+        $resource = DB::table('provisioned_resources')
+            ->where('ministack_resource_id', $bucketName)
+            ->where('user_id', $userId)
+            ->first();
+
+        if ($resource) {
+            DB::table('activity_logs')->insert([
+                'user_id'     => $userId,
+                'resource_id' => $resource->id,
+                'action_type' => 'update',
+                'description' => "Modified S3 Bucket {$bucketName} subscription plan to '{$plan->plan_name}'",
+                'created_at'  => now(),
+            ]);
+        }
+
+        return back()->with('success', "Subscription plan updated to '{$plan->plan_name}' successfully!");
+    }
 }
+

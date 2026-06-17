@@ -311,6 +311,33 @@
 
                         <div id="danger-zone-container"
                             class="mt-4 pt-4 border-t border-gray-200 {{ session('current_bucket') ? '' : 'hidden' }}">
+                            
+                            <!-- Modify Subscription Plan Feature -->
+                            <div class="mb-5 pb-5 border-b border-gray-200">
+                                <h5 class="text-sm font-semibold text-gray-800 mb-2">Modify Storage Plan</h5>
+                                <form action="{{ route('s3.modifyPlan') }}" method="POST" class="flex flex-col sm:flex-row items-end gap-3">
+                                    @csrf
+                                    <input type="hidden" name="bucket_name" id="modify-plan-bucket"
+                                        value="{{ session('current_bucket') }}">
+                                    <div class="flex-1 w-full">
+                                        <select name="target_plan_id"
+                                            class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                            required>
+                                            <option value="" disabled selected>Select a new storage plan...</option>
+                                            @foreach ($storagePlans as $plan)
+                                                <option value="{{ $plan->id }}">
+                                                    {{ $plan->plan_name }} ({{ $plan->storage_quota_gb }}GB) - Rp {{ number_format($plan->monthly_price, 0, ',', '.') }}/mo
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <button type="submit"
+                                        class="w-full sm:w-auto bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 text-sm font-bold transition">
+                                        Change Plan
+                                    </button>
+                                </form>
+                            </div>
+
                             <form action="{{ route('s3.deleteBucket') }}" method="POST"
                                 onsubmit="return confirm('WARNING: Are you sure you want to terminate this bucket? This will stop billing and cannot be undone.');">
                                 @csrf
@@ -331,6 +358,32 @@
 
                         @if (session('current_bucket'))
                             <div class="mt-4 pt-4 border-t border-gray-200">
+                                <!-- Modify Subscription Plan Feature -->
+                                <div class="mb-5 pb-5 border-b border-gray-200">
+                                    <h5 class="text-sm font-semibold text-gray-800 mb-2">Modify Storage Plan</h5>
+                                    <form action="{{ route('s3.modifyPlan') }}" method="POST" class="flex flex-col sm:flex-row items-end gap-3">
+                                        @csrf
+                                        <input type="hidden" name="bucket_name"
+                                            value="{{ session('current_bucket') }}">
+                                        <div class="flex-1 w-full">
+                                            <select name="target_plan_id"
+                                                class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                                required>
+                                                <option value="" disabled selected>Select a new storage plan...</option>
+                                                @foreach ($storagePlans as $plan)
+                                                    <option value="{{ $plan->id }}">
+                                                        {{ $plan->plan_name }} ({{ $plan->storage_quota_gb }}GB) - Rp {{ number_format($plan->monthly_price, 0, ',', '.') }}/mo
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <button type="submit"
+                                            class="w-full sm:w-auto bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 text-sm font-bold transition">
+                                            Change Plan
+                                        </button>
+                                    </form>
+                                </div>
+
                                 <form action="{{ route('s3.deleteBucket') }}" method="POST"
                                     onsubmit="return confirm('WARNING: Are you sure you want to terminate this bucket? This will stop billing and cannot be undone.');">
                                     @csrf
@@ -934,6 +987,10 @@
                                 document.getElementById('danger-zone-bucket').value = bucketName;
                                 document.getElementById('danger-zone-text').innerText =
                                     `Terminate Service (${bucketName})`;
+                                const modifyPlanBucket = document.getElementById('modify-plan-bucket');
+                                if (modifyPlanBucket) {
+                                    modifyPlanBucket.value = bucketName;
+                                }
                             }
                         })
                         .catch(() => {

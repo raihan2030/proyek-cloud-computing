@@ -209,6 +209,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/s3/download/{bucket}/{key}', [S3Controller::class, 'downloadFile'])->name('s3.downloadFile');
     Route::post('/s3/delete-file', [S3Controller::class, 'deleteFile'])->name('s3.deleteFile');
     Route::post('/s3/delete-bucket', [S3Controller::class, 'deleteBucket'])->name('s3.deleteBucket');
+    Route::post('/s3/modify-plan', [S3Controller::class, 'modifyPlan'])->name('s3.modifyPlan');
 
     // --- EC2 Routes ---
     Route::post('/ec2/launch', [Ec2Controller::class, 'launchInstance'])->name('ec2.launch');
