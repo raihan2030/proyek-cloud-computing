@@ -99,13 +99,13 @@
         <div class="ml-60 flex-1 flex flex-col min-h-screen w-full overflow-hidden">
             <header class="bg-surface border-b border-outline-variant fixed top-0 right-0 w-[calc(100%-240px)] flex justify-between items-center h-16 px-lg z-40 transition-colors duration-150">
                 <div class="flex items-center text-on-surface-variant w-96">
-                    <span class="material-symbols-outlined text-xl mr-sm">search</span>
-                    <input class="bg-transparent border-none outline-none text-sm placeholder:text-outline focus:ring-0 w-full" placeholder="Cari data admin..." type="text"/>
+                    {{-- <span class="material-symbols-outlined text-xl mr-sm">search</span>
+                    <input class="bg-transparent border-none outline-none text-sm placeholder:text-outline focus:ring-0 w-full" placeholder="Cari data admin..." type="text"/> --}}
                 </div>
                 <div class="flex items-center gap-md text-on-surface-variant">
-                    <button class="hover:bg-surface-container-highest rounded-lg p-sm transition-colors duration-150 flex items-center justify-center">
+                    {{-- <button class="hover:bg-surface-container-highest rounded-lg p-sm transition-colors duration-150 flex items-center justify-center">
                         <span class="material-symbols-outlined">notifications</span>
-                    </button>
+                    </button> --}}
                     <div class="h-8 w-px bg-outline-variant"></div>
                     <div class="flex items-center gap-2">
                         <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center font-mono font-bold text-primary border border-primary/30">
