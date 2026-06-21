@@ -1,8 +1,40 @@
-<x-app-layout>
-    <div class="py-10 bg-slate-50 min-h-screen">
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <title>{{ config('app.name', 'Laravel') }} - Admin Panel</title>
+
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="font-sans antialiased bg-slate-50 text-slate-900">
+    
+    <nav class="bg-slate-900 border-b border-slate-800 text-white px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center shadow-sm sticky top-0 z-50">
+        <div class="flex items-center space-x-4">
+            <a href="{{ route('admin.index') }}" class="font-bold text-xl tracking-wider text-white flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                ADMIN<span class="text-indigo-400">PANEL</span>
+            </a>
+        </div>
+        <div class="flex items-center space-x-5">
+            <span class="text-sm text-slate-300 hidden md:inline-block">Halo, <strong>{{ Auth::user()->name }}</strong></span>
+            
+            <a href="{{ route('dashboard') }}" class="text-sm text-indigo-400 hover:text-indigo-300 transition">Ke Dasbor User</a>
+            
+            <form method="POST" action="{{ route('logout') }}" class="inline m-0 p-0">
+                @csrf
+                <button type="submit" class="text-sm bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 rounded-lg transition font-medium shadow-sm">
+                    Log Out
+                </button>
+            </form>
+        </div>
+    </nav>
+
+    <div class="py-10 min-h-screen">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
-            <!-- Success / Error Alerts -->
             @if(session('success'))
                 <div x-data="{ show: true }" x-show="show" x-transition
                      class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-r-lg shadow-sm flex items-center justify-between">
@@ -38,14 +70,12 @@
             @endif
 
             <div class="flex flex-col lg:flex-row gap-8">
-                <!-- Sidebar Navigation -->
                 <aside class="w-full lg:w-64 shrink-0">
                     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden p-4 space-y-1">
                         <div class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
                             Menu Navigasi
                         </div>
                         
-                        <!-- Overview -->
                         <a href="{{ route('admin.index') }}" 
                            class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all {{ $tab === 'overview' ? 'bg-gray-800 text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,7 +84,6 @@
                             <span>Ringkasan</span>
                         </a>
 
-                        <!-- Users -->
                         <a href="{{ route('admin.users') }}" 
                            class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all {{ $tab === 'users' ? 'bg-gray-800 text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,7 +92,6 @@
                             <span>Kelola Pengguna</span>
                         </a>
 
-                        <!-- Plans -->
                         <a href="{{ route('admin.plans') }}" 
                            class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all {{ $tab === 'plans' ? 'bg-gray-800 text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -72,7 +100,6 @@
                             <span>Paket Langganan</span>
                         </a>
 
-                        <!-- Provisioned Resources -->
                         <a href="{{ route('admin.resources') }}" 
                            class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all {{ $tab === 'resources' ? 'bg-gray-800 text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,7 +108,6 @@
                             <span>Sumber Daya Aktif</span>
                         </a>
 
-                        <!-- Payments -->
                         <a href="{{ route('admin.payments') }}" 
                            class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all {{ $tab === 'payments' ? 'bg-gray-800 text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,7 +116,6 @@
                             <span>Transaksi & Tagihan</span>
                         </a>
 
-                        <!-- Logs -->
                         <a href="{{ route('admin.logs') }}" 
                            class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all {{ $tab === 'logs' ? 'bg-gray-800 text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,10 +126,8 @@
                     </div>
                 </aside>
 
-                <!-- Content Area -->
                 <main class="flex-1">
                     
-                    <!-- RINGKASAN OVERVIEW -->
                     @if($tab === 'overview')
                         <div class="space-y-8">
                             <div class="flex items-center justify-between">
@@ -112,9 +135,7 @@
                                 <span class="text-sm font-medium text-slate-500">{{ now()->isoFormat('D MMMM YYYY') }}</span>
                             </div>
 
-                            <!-- Stat Cards Grid -->
                             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                                <!-- Users Stats -->
                                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center space-x-5 hover:shadow-md transition">
                                     <div class="p-4 bg-indigo-50 text-indigo-600 rounded-xl">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,7 +148,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Running Instances (Compute) -->
                                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center space-x-5 hover:shadow-md transition">
                                     <div class="p-4 bg-sky-50 text-sky-600 rounded-xl">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,7 +160,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Active Buckets (Storage) -->
                                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center space-x-5 hover:shadow-md transition">
                                     <div class="p-4 bg-emerald-50 text-emerald-600 rounded-xl">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -153,7 +172,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Revenue Stats -->
                                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center space-x-5 hover:shadow-md transition">
                                     <div class="p-4 bg-teal-50 text-teal-600 rounded-xl">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,7 +184,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Pending Payments -->
                                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center space-x-5 hover:shadow-md transition">
                                     <div class="p-4 bg-amber-50 text-amber-600 rounded-xl">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,7 +196,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Virtual Balance in System -->
                                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center space-x-5 hover:shadow-md transition">
                                     <div class="p-4 bg-fuchsia-50 text-fuchsia-600 rounded-xl">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -193,7 +209,6 @@
                                 </div>
                             </div>
 
-                            <!-- Recent logs list -->
                             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
                                 <h3 class="text-lg font-bold text-slate-800 mb-6">Log Aktivitas Terbaru</h3>
                                 <div class="space-y-4">
@@ -223,12 +238,10 @@
                         </div>
                     @endif
 
-                    <!-- KELOLA PENGGUNA -->
                     @if($tab === 'users')
                         <div class="space-y-6">
                             <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Kelola Pengguna</h2>
 
-                            <!-- Users Table -->
                             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                                 <table class="min-w-full divide-y divide-slate-100 text-left">
                                     <thead class="bg-slate-50">
@@ -260,7 +273,6 @@
                                                 </td>
                                                 <td class="px-6 py-4">
                                                     <div class="flex items-center justify-center space-x-3">
-                                                        <!-- Adjust Balance Form -->
                                                         <form action="{{ route('admin.users.balance', $user->id) }}" method="POST" class="flex items-center space-x-1">
                                                             @csrf
                                                             <input type="number" name="amount" placeholder="+/- Jumlah" step="0.01"
@@ -271,7 +283,6 @@
                                                         </form>
 
                                                         @if(Auth::id() != $user->id)
-                                                            <!-- Change Role Form -->
                                                             <form action="{{ route('admin.users.role', $user->id) }}" method="POST" class="inline">
                                                                 @csrf
                                                                 <input type="hidden" name="role" value="{{ $user->role === 'admin' ? 'user' : 'admin' }}">
@@ -280,7 +291,6 @@
                                                                 </button>
                                                             </form>
 
-                                                            <!-- Delete User Form -->
                                                             <form action="{{ route('admin.users.delete', $user->id) }}" method="POST" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pengguna ini? Semua data terkait juga akan terhapus.');">
                                                                 @csrf
                                                                 @method('DELETE')
@@ -299,7 +309,6 @@
                         </div>
                     @endif
 
-                    <!-- PAKET LANGGANAN -->
                     @if($tab === 'plans')
                         <div class="space-y-8">
                             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -310,7 +319,6 @@
                                 </button>
                             </div>
 
-                            <!-- List of plans -->
                             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                                 <table class="min-w-full divide-y divide-slate-100 text-left">
                                     <thead class="bg-slate-50">
@@ -381,7 +389,6 @@
                                 </table>
                             </div>
 
-                            <!-- Add New Plan Form -->
                             <div id="add-plan-panel" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 scroll-mt-6">
                                 <h3 class="text-lg font-bold text-slate-800 mb-6">Tambah Paket Langganan Baru</h3>
                                 <form action="{{ route('admin.plans.create') }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -434,12 +441,10 @@
                         </div>
                     @endif
 
-                    <!-- SUMBER DAYA AKTIF -->
                     @if($tab === 'resources')
                         <div class="space-y-6">
                             <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Sumber Daya Aktif</h2>
 
-                            <!-- Resources Table -->
                             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                                 <table class="min-w-full divide-y divide-slate-100 text-left">
                                     <thead class="bg-slate-50">
@@ -488,12 +493,10 @@
                         </div>
                     @endif
 
-                    <!-- TRANSAKSI & TAGIHAN -->
                     @if($tab === 'payments')
                         <div class="space-y-6">
                             <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Transaksi & Tagihan</h2>
 
-                            <!-- Payments Table -->
                             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                                 <table class="min-w-full divide-y divide-slate-100 text-left">
                                     <thead class="bg-slate-50">
@@ -572,12 +575,10 @@
                         </div>
                     @endif
 
-                    <!-- LOG AKTIVITAS -->
                     @if($tab === 'logs')
                         <div class="space-y-6">
                             <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Log Aktivitas Sistem</h2>
 
-                            <!-- Logs Table -->
                             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                                 <table class="min-w-full divide-y divide-slate-100 text-left">
                                     <thead class="bg-slate-50">
@@ -614,7 +615,6 @@
                                     </tbody>
                                 </table>
 
-                                <!-- Pagination Links -->
                                 <div class="px-6 py-4 bg-slate-50 border-t border-slate-100">
                                     {{ $logs->links() }}
                                 </div>
@@ -625,10 +625,8 @@
                 </main>
             </div>
         </div>
-        </div>
     </div>
 
-    <!-- Toggle plan quota fields based on category -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const serviceSelect = document.getElementById('service-select');
@@ -667,4 +665,5 @@
             }
         });
     </script>
-</x-app-layout>
+</body>
+</html>
