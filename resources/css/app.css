@@ -59,3 +59,28 @@
     @apply flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-surface-variant hover:bg-surface-container-highest hover:text-primary transition-all duration-200;
 }
 
+/* Mengatasi background putih/kuning bawaan browser saat autocomplete */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    /* Gunakan box-shadow inset untuk menutupi background putih dengan warna hitam */
+    -webkit-box-shadow: 0 0 0 30px #000000 inset !important; /* Ubah #000000 dengan kode warna hitam yang Anda inginkan (misal: #111827 untuk gray-900) */
+    
+    /* Memastikan teks tetap berwarna putih (atau warna yang kontras) agar bisa dibaca */
+    -webkit-text-fill-color: #ffffff !important; 
+    
+    /* Opsional: Membuat transisi agar warna dasar tidak langsung berubah (trik alternatif) */
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Mengubah warna ikon mata password bawaan browser (Edge/Chrome) menjadi putih */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    filter: invert(100%);
+}
+
+/* Jika Anda ingin ikon tersebut agak redup (menyesuaikan text-on-surface-variant) */
+input[type="password"]::-ms-reveal:hover {
+    filter: invert(80%);
+}

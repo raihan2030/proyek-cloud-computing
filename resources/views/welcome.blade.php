@@ -67,8 +67,8 @@
             <div class="flex justify-between items-center h-16">
                 <!-- Logo -->
                 <div class="flex items-center space-x-3">
-                    <span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">cloud</span>
-                    <span class="text-lg font-bold text-primary tracking-tight">CloudOS</span>
+                    <span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">cyclone</span>
+                    <span class="text-lg font-bold text-primary tracking-tight">Vortex Cloud</span>
                 </div>
 
                 <!-- Navigation Links -->
@@ -120,12 +120,8 @@
     <!-- Hero Section -->
     <section class="pt-32 pb-20 md:pt-48 md:pb-32 relative">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div class="inline-flex items-center gap-2 bg-surface-container-highest border border-outline-variant px-3 py-1 rounded-full text-[10px] font-bold font-mono tracking-widest text-primary uppercase mb-6">
-                <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-                Next-Gen IaaS Engine
-            </div>
             <h1 class="text-4xl md:text-6xl font-bold text-primary tracking-tight mb-6 max-w-4xl mx-auto leading-tight">
-                Transformasi Digital Bisnis Anda dengan CloudOS
+                Transformasi Digital Bisnis Anda dengan Vortex Cloud
             </h1>
             <p class="text-sm md:text-base text-on-surface-variant mb-10 max-w-2xl mx-auto leading-relaxed">
                 Platform Infrastructure as a Service (IaaS) dengan performa ekstrim, skalabilitas instan, dan kontrol total. Dibangun untuk developer dan bisnis modern yang mengutamakan kecepatan dan reliabilitas.
