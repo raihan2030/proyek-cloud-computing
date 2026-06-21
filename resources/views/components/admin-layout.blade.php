@@ -83,7 +83,7 @@
                 <a class="{{ $isProfile ? 'nav-item-active' : 'nav-item-inactive' }} border-t border-outline-variant pt-md" 
                    href="{{ route('profile.edit') }}">
                     <span class="material-symbols-outlined text-xl">account_circle</span>
-                    <span class="truncate">Admin ({{ Auth::user()->name }})</span>
+                    <span class="truncate">Admin Profile</span>
                 </a>
                 
                 <form method="POST" action="{{ route('logout') }}">
