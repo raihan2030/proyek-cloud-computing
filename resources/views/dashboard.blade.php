@@ -1,724 +1,824 @@
 <x-app-layout>
-    <div class="py-12 bg-gray-50">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    @php
+        $tab = request()->query('tab', 'overview');
+    @endphp
 
-            <!-- Global Alerts -->
-            @if (session('success'))
-                <div x-data="{ show: true }" x-show="show" x-transition
-                     class="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center justify-between shadow-sm">
-                    <span>{{ session('success') }}</span>
-                    <button @click="show = false" class="text-green-500 hover:text-green-700 ml-4 shrink-0 transition focus:outline-none" title="Tutup">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+    <x-slot name="header">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md">
+            <div>
+                <h2 class="font-bold text-2xl text-primary tracking-tight">
+                    @if ($tab === 'overview')
+                        Overview
+                    @elseif ($tab === 'resources')
+                        Resource Cloud
+                    @elseif ($tab === 'plans')
+                        Paket Langganan
+                    @elseif ($tab === 'credentials')
+                        Kredensial API
+                    @elseif ($tab === 'logs')
+                        Audit Logs
+                    @endif
+                </h2>
+                <p class="text-sm text-on-surface-variant mt-1">
+                    @if ($tab === 'overview')
+                        Sistem status, alokasi resourcet, dan log aktivitas terbaru.
+                    @elseif ($tab === 'resources')
+                        Kelola dan awasi instance compute (EC2) serta penyimpanan object (S3).
+                    @elseif ($tab === 'plans')
+                        Daftar paket komputasi dan penyimpanan cloud yang tersedia.
+                    @elseif ($tab === 'credentials')
+                        Akses kunci API privat per layanan untuk integrasi API.
+                    @elseif ($tab === 'logs')
+                        Riwayat lengkap audit log dan operasi infrastruktur cloud Anda.
+                    @endif
+                </p>
+            </div>
+            
+            @if ($tab === 'resources')
+                <div class="flex items-center gap-sm shrink-0">
+                    <button id="ec2-refresh-btn" class="btn-secondary px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm">refresh</span>
+                        Sync
                     </button>
+                    <a href="#launch-instance" class="btn-primary px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm">add</span>
+                        Deploy Resource
+                    </a>
                 </div>
             @endif
-            @if (session('error'))
-                <div x-data="{ show: true }" x-show="show" x-transition
-                     class="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center justify-between shadow-sm">
-                    <span>{{ session('error') }}</span>
-                    <button @click="show = false" class="text-red-500 hover:text-red-700 ml-4 shrink-0 transition focus:outline-none" title="Tutup">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+        </div>
+    </x-slot>
+
+    @if (session('success'))
+        <div class="mb-6 p-4 bg-primary text-on-primary-fixed border border-outline-variant rounded flex items-center gap-md font-semibold">
+            <span class="material-symbols-outlined">check_circle</span>
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
+    @if (session('error'))
+        <div class="mb-6 p-4 bg-error/15 text-error border border-error/30 rounded flex items-center gap-md font-semibold">
+            <span class="material-symbols-outlined">error</span>
+            <span>{{ session('error') }}</span>
+        </div>
+    @endif
+
+    {{-- ============================================================ --}}
+    {{-- OVERVIEW TAB --}}
+    {{-- ============================================================ --}}
+    @if ($tab === 'overview')
+        <!-- Statistics Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-gutter mb-lg">
+            <div class="stat-card">
+                <p class="font-mono text-xs text-on-surface-variant uppercase tracking-widest mb-sm">Total Resources</p>
+                <div class="flex items-baseline gap-sm">
+                    <h3 class="text-3xl font-bold text-primary">{{ $totalResources }}</h3>
+                    <span class="font-mono text-xs text-on-surface-variant">active</span>
                 </div>
-            @endif
+            </div>
+            <div class="stat-card">
+                <p class="font-mono text-xs text-on-surface-variant uppercase tracking-widest mb-sm">Active Services</p>
+                <div class="flex items-baseline gap-sm">
+                    <h3 class="text-3xl font-bold text-primary">{{ $activeServices }}</h3>
+                    <span class="font-mono text-xs text-secondary">running</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <p class="font-mono text-xs text-on-surface-variant uppercase tracking-widest mb-sm">Monthly Spend</p>
+                <div class="flex items-baseline gap-sm">
+                    <h3 class="text-3xl font-bold text-primary">${{ number_format($monthlyBill, 2) }}</h3>
+                    <span class="font-mono text-xs text-on-surface-variant">run rate</span>
+                </div>
+            </div>
+        </div>
 
-            <div x-data="{ activeTab: 'overview' }" class="flex flex-col lg:flex-row gap-8">
-                <!-- Sidebar Navigation -->
-                <aside class="w-full lg:w-64 shrink-0">
-                    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden p-4 space-y-1">
-                        <div class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                            Layanan CloudOS
-                        </div>
-                        
-                        <!-- Overview Tab Button -->
-                        <button @click="activeTab = 'overview'" 
-                           :class="activeTab === 'overview' ? 'bg-gray-800 text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-                           class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all text-left">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
-                            </svg>
-                            <span>Ringkasan</span>
-                        </button>
-
-                        <!-- S3 Storage Tab Button -->
-                        <button @click="activeTab = 's3'" 
-                           :class="activeTab === 's3' ? 'bg-gray-800 text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-                           class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all text-left">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                            </svg>
-                            <span>S3 Object Storage</span>
-                        </button>
-
-                        <!-- EC2 Compute Tab Button -->
-                        <button @click="activeTab = 'ec2'" 
-                           :class="activeTab === 'ec2' ? 'bg-gray-800 text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-                           class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all text-left">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 5h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2z" />
-                            </svg>
-                            <span>EC2 Compute</span>
-                        </button>
+        <!-- Bento Grid Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+            <!-- Resource Allocation Chart -->
+            <div class="lg:col-span-2 stat-card flex flex-col justify-between h-[380px]">
+                <div class="border-b border-outline-variant pb-sm mb-md flex justify-between items-center">
+                    <h3 class="font-semibold text-primary">Resource Allocation</h3>
+                    <span class="font-mono text-[10px] text-on-surface-variant">MiniStack Engine</span>
+                </div>
+                
+                <div class="flex-1 flex items-end gap-md relative px-md">
+                    <!-- Chart Background Grid lines -->
+                    <div class="absolute inset-x-lg top-lg bottom-lg flex flex-col justify-between pointer-events-none opacity-10">
+                        <div class="border-t border-outline"></div>
+                        <div class="border-t border-outline"></div>
+                        <div class="border-t border-outline"></div>
+                        <div class="border-t border-outline"></div>
                     </div>
-                </aside>
-
-                <!-- Content Area -->
-                <main class="flex-1 space-y-6">
                     
-                    <!-- TAB 1: OVERVIEW -->
-                    <div x-show="activeTab === 'overview'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-6">
-                        
-                        <!-- Metrics Cards Grid -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="bg-white rounded-lg shadow p-6 border-l-4 border-indigo-500 hover:shadow-md transition">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-sm font-medium text-black-500 bold uppercase tracking-wider">Total Resources</p>
-                                        <h4 class="text-3xl font-bold text-gray-800 mt-1">{{ $totalResources }}</h4>
-                                    </div>
-                                    <div class="p-3 bg-indigo-50 text-indigo-600 rounded-full">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <p class="text-sm text-gray-400 mt-2">Active instances & storage volumes</p>
-                            </div>
-
-                            <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500 hover:shadow-md transition">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-sm font-medium text-black-500 bold uppercase tracking-wider">Active Services</p>
-                                        <h4 class="text-3xl font-bold text-gray-800 mt-1">{{ $activeServices }}</h4>
-                                    </div>
-                                    <div class="p-3 bg-green-50 text-green-600 rounded-full">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <p class="text-sm text-gray-400 mt-2">Running cloud subscriptions</p>
-                            </div>
-
-                            <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500 hover:shadow-md transition">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-sm font-medium text-black-500 bold uppercase tracking-wider">Monthly Spend</p>
-                                        <h4 class="text-3xl font-bold text-gray-800 mt-1">Rp {{ number_format($monthlyBill, 2, ',', '.') }}</h4>
-                                    </div>
-                                    <div class="p-3 bg-amber-50 text-amber-600 rounded-full">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <p class="text-sm text-gray-400 mt-2">Projected cost of active services</p>
-                            </div>
+                    <!-- Simulated Bars -->
+                    <div class="w-full flex justify-around items-end h-full z-10">
+                        @php
+                            $s3Count = count($bucketsData);
+                            $ec2Count = count($instancesData);
+                            $totalCount = max($s3Count + $ec2Count, 1);
+                            $s3Percent = ($s3Count / $totalCount) * 100;
+                            $ec2Percent = ($ec2Count / $totalCount) * 100;
+                        @endphp
+                        <div class="flex flex-col items-center gap-2 w-20">
+                            <div class="w-12 bg-outline-variant rounded-t transition-all hover:bg-primary" style="height: {{ max($s3Percent * 2.5, 20) }}px"></div>
+                            <span class="font-mono text-[10px] text-on-surface-variant">S3 Storage</span>
                         </div>
-
-                        <!-- API Credentials Manager -->
-                        <div class="bg-white overflow-hidden shadow-md sm:rounded-lg">
-                            <div class="p-6 text-gray-900">
-                                <h3 class="text-lg font-bold mb-4">Akses Kredensial API per Layanan</h3>
-
-                                @if ($userCredentials->count() > 0)
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                        @foreach ($userCredentials as $cred)
-                                            <div class="bg-gray-50 p-4 rounded border border-gray-200 shadow-sm relative">
-                                                <div class="absolute top-3 right-3 text-xs font-bold text-white px-2 py-1 rounded {{ $cred->resource_type == 'storage' ? 'bg-blue-500' : 'bg-orange-500' }}">
-                                                    {{ strtoupper($cred->resource_type) }}
-                                                </div>
-                                                <h4 class="font-bold text-gray-800 mb-3">{{ $cred->instance_name }}</h4>
-
-                                                <div class="mb-2 text-sm">
-                                                    <span class="block font-semibold text-gray-600">Access Key:</span>
-                                                    <code class="bg-white px-2 py-1 rounded border text-blue-600 block w-full truncate">{{ $cred->access_key }}</code>
-                                                </div>
-                                                <div class="text-sm">
-                                                    <span class="block font-semibold text-gray-600">Secret Key:</span>
-                                                    <code class="bg-white px-2 py-1 rounded border text-red-600 block w-full truncate">{{ decrypt($cred->secret_key_encrypted) }}</code>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                @else
-                                    <p class="mb-4 text-gray-600 italic border-l-4 border-gray-400 pl-4">Anda belum memiliki kunci API untuk layanan apa pun.</p>
-                                @endif
-
-                                <hr class="my-4 border-gray-200">
-
-                                <h4 class="font-semibold text-gray-700 mb-2">Generate Kredensial Baru</h4>
-                                @if ($availableResourcesForKey->count() > 0)
-                                    <form action="{{ route('s3.generateCredentials') }}" method="POST" class="flex flex-col md:flex-row gap-3 items-end">
-                                        @csrf
-                                        <div class="w-full md:w-1/2">
-                                            <label class="block text-sm font-medium text-gray-600 mb-1">Pilih Layanan Layak Kunci API</label>
-                                            <select name="provisioned_id" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
-                                                <option value="" disabled selected>-- Pilih Resource --</option>
-                                                @foreach ($availableResourcesForKey as $res)
-                                                    <option value="{{ $res->id }}">
-                                                        [{{ strtoupper($res->resource_type) }}] - {{ $res->instance_name }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                        <button type="submit" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded w-full md:w-auto shadow-sm transition">
-                                            Request Access Key
-                                        </button>
-                                    </form>
-                                @else
-                                    <div class="bg-yellow-50 text-yellow-700 p-3 rounded text-sm border border-yellow-200">
-                                        Semua layanan Anda saat ini sudah memiliki Kredensial API, atau Anda belum memiliki layanan aktif sama sekali.
-                                    </div>
-                                @endif
-                            </div>
+                        <div class="flex flex-col items-center gap-2 w-20">
+                            <div class="w-12 bg-primary rounded-t transition-all hover:bg-primary-container" style="height: {{ max($ec2Percent * 2.5, 20) }}px"></div>
+                            <span class="font-mono text-[10px] text-on-surface-variant">EC2 Compute</span>
                         </div>
-
-                        <!-- S3 & EC2 Resource Quotas (Read-Only Summaries) -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- S3 Storage Quota summary card -->
-                            <div class="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-500 flex flex-col justify-between">
-                                <div>
-                                    <div class="flex items-center justify-between mb-4">
-                                        <h3 class="text-lg font-semibold text-gray-800">S3 Storage Quotas</h3>
-                                        <div class="bg-blue-50 text-blue-600 rounded-full px-3 py-1 text-xs font-bold">
-                                            {{ count($bucketsData) }} Active
-                                        </div>
-                                    </div>
-
-                                    @if (count($bucketsData) > 0)
-                                        <div class="mb-5">
-                                            <label class="block text-xs font-medium text-gray-500 mb-1">Select Bucket to View</label>
-                                            <select id="bucket-selector" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50">
-                                                @foreach ($bucketsData as $index => $bucket)
-                                                    <option value="{{ $index }}">{{ $bucket['name'] }} ({{ $bucket['totalGB'] }}GB Plan)</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-
-                                        <div class="mb-4">
-                                            <div class="flex justify-between items-center mt-4 mb-2">
-                                                <span class="text-sm font-medium text-gray-600">Capacity Used</span>
-                                                <span id="display-size-text" class="text-sm font-bold text-gray-800">
-                                                    {{ $bucketsData[0]['displaySize'] }} / {{ $bucketsData[0]['totalGB'] }} GB
-                                                    ({{ number_format($bucketsData[0]['percentage'], 0) }}%)
-                                                </span>
-                                            </div>
-                                            <div class="w-full bg-gray-200 rounded-full h-2">
-                                                <div id="capacity-progress-bar" class="{{ $bucketsData[0]['colorClass'] }} h-2 rounded-full transition-all duration-500" style="width: {{ $bucketsData[0]['percentage'] }}%"></div>
-                                            </div>
-                                        </div>
-
-                                        <div class="space-y-2 mb-4">
-                                            <div class="flex justify-between text-sm">
-                                                <span class="text-gray-600">Available Storage</span>
-                                                <span id="available-storage-text" class="font-semibold text-gray-800">{{ $bucketsData[0]['available'] }}</span>
-                                            </div>
-                                        </div>
-                                    @else
-                                        <div class="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-md">
-                                            No active buckets.<br>Provision a new bucket to see quotas here.
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-
-                            <script>
-                                window.userBucketsData = @json($bucketsData);
-                            </script>
-
-                            <!-- EC2 Compute Quota summary card -->
-                            <div class="bg-white rounded-lg shadow-md p-6 border-t-4 border-orange-500 flex flex-col justify-between">
-                                <div>
-                                    <div class="flex items-center justify-between mb-4">
-                                        <h3 class="text-lg font-semibold text-gray-800">EC2 Compute Quotas</h3>
-                                        <div class="bg-orange-50 text-orange-600 rounded-full px-3 py-1 text-xs font-bold">
-                                            {{ count($instancesData) }} Active
-                                        </div>
-                                    </div>
-
-                                    @if (count($instancesData) > 0)
-                                        @php
-                                            $totalVcpus = 0;
-                                            $runningCount = 0;
-                                            $stoppedCount = 0;
-                                            foreach ($instancesData as $inst) {
-                                                $vcpu = match ($inst['instance_type']) {
-                                                    't2.micro' => 1,
-                                                    't2.small' => 2,
-                                                    't2.medium' => 4,
-                                                    default => 1,
-                                                };
-                                                $totalVcpus += $vcpu;
-                                                if ($inst['status'] === 'running') {
-                                                    $runningCount++;
-                                                } else {
-                                                    $stoppedCount++;
-                                                }
-                                            }
-                                        @endphp
-                                        <div class="space-y-3 mb-4">
-                                            <div class="bg-gray-50 rounded p-3">
-                                                <div class="flex justify-between items-center">
-                                                    <span class="text-sm font-medium text-gray-600">Total vCPUs</span>
-                                                    <span class="text-xl font-bold text-gray-800">{{ $totalVcpus }} vCPU</span>
-                                                </div>
-                                            </div>
-
-                                            <div class="flex justify-between text-sm bg-gray-50 rounded p-3">
-                                                <span class="text-gray-600">Running Instances</span>
-                                                <span class="font-semibold text-green-600">{{ $runningCount }}</span>
-                                            </div>
-
-                                            <div class="flex justify-between text-sm bg-gray-50 rounded p-3">
-                                                <span class="text-gray-600">Stopped Instances</span>
-                                                <span class="font-semibold text-yellow-600">{{ $stoppedCount }}</span>
-                                            </div>
-                                        </div>
-                                    @else
-                                        <div class="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-md">
-                                            No active instances.<br>Launch one to see compute quotas here.
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- System Health Status -->
-                        <div class="bg-white rounded-lg shadow-md p-6">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Health Status</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border border-slate-200/55">
-                                    <div class="flex-shrink-0">
-                                        <div class="flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                                            <svg class="h-6 w-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-medium text-gray-800">S3 Storage</p>
-                                        <p class="text-xs text-green-600 font-bold">Fully Operational</p>
-                                        <p class="text-xs text-gray-500 mt-1">All systems nominal</p>
-                                    </div>
-                                </div>
-
-                                <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border border-slate-200/55">
-                                    <div class="flex-shrink-0">
-                                        <div class="flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                                            <svg class="h-6 w-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-medium text-gray-800">EC2 Compute</p>
-                                        <p class="text-xs text-green-600 font-bold">Fully Operational</p>
-                                        <p class="text-xs text-gray-500 mt-1">All systems nominal</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Recent Rental Activity Logs -->
-                        <div class="bg-white rounded-lg shadow-md p-6">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Riwayat Aktivitas Penyewaan</h3>
-                            <div class="space-y-4">
-                                @forelse ($recentActivities as $log)
-                                    <div class="flex items-start gap-4 pb-4 border-b border-gray-200 last:border-0">
-                                        <div class="flex-shrink-0 mt-1">
-                                            @if($log->action_type == 'create')
-                                                <div class="flex items-center justify-center h-8 w-8 rounded-full bg-green-100">
-                                                    <svg class="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                                    </svg>
-                                                </div>
-                                            @elseif($log->action_type == 'delete')
-                                                <div class="flex items-center justify-center h-8 w-8 rounded-full bg-red-100">
-                                                    <svg class="h-4 w-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                                    </svg>
-                                                </div>
-                                            @else
-                                                <div class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-100">
-                                                    <svg class="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                                    </svg>
-                                                </div>
-                                            @endif
-                                        </div>
-                                        <div class="flex-1">
-                                            <p class="text-sm font-medium text-gray-800 capitalize">
-                                                {{ $log->action_type }} Resource
-                                            </p>
-                                            <p class="text-xs text-gray-600 mt-1">
-                                                {{ $log->description }}
-                                            </p>
-                                            <p class="text-xs text-gray-500 mt-1">
-                                                {{ \Carbon\Carbon::parse($log->created_at)->diffForHumans() }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                @empty
-                                    <div class="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-md">
-                                        Belum ada riwayat aktivitas penyewaan.
-                                    </div>
-                                @endforelse
-                            </div>
-                        </div>
-
-                    </div> <!-- End of TAB 1 -->
-
-                    <!-- TAB 2: S3 STORAGE -->
-                    <div x-show="activeTab === 's3'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-6" style="display: none;">
-                        
-                        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-semibold text-gray-800">S3 Storage Management (Test Workspace)</h3>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {{-- Create bucket form --}}
-                                <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 hover:shadow-md transition">
-                                    <h4 class="font-medium text-gray-800 mb-4 flex items-center gap-2">
-                                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                        </svg>
-                                        Create Isolated Bucket
-                                    </h4>
-                                    <form action="{{ route('s3.createBucket') }}" method="POST">
-                                        @csrf
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Bucket Name</label>
-                                        <p class="text-xs text-gray-500 mb-2">Must be lowercase, no spaces.</p>
-                                        <input type="text" name="bucket_name"
-                                            class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 mb-4"
-                                            placeholder="e.g., iaas-firas-123" required>
-
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Storage Plan</label>
-                                        <select name="plan_id"
-                                            class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 mb-4"
-                                            required>
-                                            <option value="" disabled selected>Select a plan...</option>
-                                            @foreach ($storagePlans as $plan)
-                                                <option value="{{ $plan->id }}">{{ $plan->plan_name }} ({{ $plan->storage_quota_gb }}GB) - Rp {{ number_format($plan->monthly_price, 0, ',', '.') }}/mo</option>
-                                            @endforeach
-                                        </select>
-
-                                        <button type="submit"
-                                            class="w-full bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition shadow-sm">Provision in MiniStack</button>
-                                    </form>
-                                </div>
-
-                                {{-- File upload form --}}
-                                <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 hover:shadow-md transition" id="upload-form">
-                                    <h4 class="font-medium text-gray-800 mb-4 flex items-center gap-2">
-                                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                                        </svg>
-                                        Upload File to Bucket
-                                    </h4>
-                                    <form action="{{ route('s3.uploadObject') }}" method="POST" enctype="multipart/form-data">
-                                        @csrf
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Select Active Bucket</label>
-                                        @if (isset($bucketsData) && count($bucketsData) > 0)
-                                            <select name="bucket_name"
-                                                class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 mb-4"
-                                                required>
-                                                <option value="" disabled {{ !session('current_bucket') ? 'selected' : '' }}>Choose target bucket...</option>
-                                                @foreach ($bucketsData as $bucket)
-                                                    <option value="{{ $bucket['name'] }}"
-                                                        {{ session('current_bucket') === $bucket['name'] ? 'selected' : '' }}>
-                                                        {{ $bucket['name'] }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        @else
-                                            <input type="text" disabled
-                                                class="w-full border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-500 mb-4 cursor-not-allowed"
-                                                placeholder="Please create a bucket first.">
-                                        @endif
-
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Files</label>
-                                        <input type="file" name="files[]" multiple
-                                            class="w-full border border-gray-300 rounded-md shadow-sm p-2 mb-4 bg-white" required>
-
-                                        <button type="submit"
-                                            class="w-full bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition shadow-sm"
-                                            {{ count($bucketsData) === 0 ? 'disabled' : '' }}>Upload Objects</button>
-                                    </form>
-                                </div>
-                            </div>
-
-                            <hr class="my-6 border-gray-200">
-
-                            <!-- File Explorer -->
-                            <div class="bg-gray-50 p-5 rounded-lg border border-gray-200">
-                                <h4 class="font-medium text-gray-800 mb-4 flex items-center gap-2">
-                                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                    Storage Explorer & Termination
-                                </h4>
-
-                                <form id="explorer-form" action="{{ route('s3.viewFiles') }}" method="POST" class="flex gap-2 mb-4">
-                                    @csrf
-                                    @if (isset($bucketsData) && count($bucketsData) > 0)
-                                        <select name="bucket_name"
-                                            class="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                            required>
-                                            <option value="" disabled {{ !session('current_bucket') ? 'selected' : '' }}>Select a bucket to view files...</option>
-                                            @foreach ($bucketsData as $bucket)
-                                                <option value="{{ $bucket['name'] }}"
-                                                    {{ session('current_bucket') === $bucket['name'] ? 'selected' : '' }}>
-                                                    {{ $bucket['name'] }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        <button type="submit" id="explorer-btn"
-                                            class="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700">Open Explorer</button>
-                                    @else
-                                        <input type="text" disabled
-                                            class="flex-1 border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-500 cursor-not-allowed"
-                                            placeholder="No active buckets available.">
-                                        <button type="button" disabled
-                                            class="bg-gray-400 text-white px-4 py-2 rounded-md cursor-not-allowed">Open Explorer</button>
-                                    @endif
-                                </form>
-
-                                <div id="file-explorer-container" class="bg-white border rounded-md overflow-hidden mb-4 {{ session('files') ? '' : 'hidden' }}">
-                                    <table class="w-full text-sm text-left text-gray-500">
-                                        <thead class="text-xs text-gray-700 uppercase bg-gray-100">
-                                            <tr>
-                                                <th class="px-4 py-3">File Name</th>
-                                                <th class="px-4 py-3">Size (Bytes)</th>
-                                                <th class="px-4 py-3 text-right">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="file-explorer-body">
-                                            @if (session('files'))
-                                                @forelse(session('files') as $file)
-                                                    <tr class="border-b">
-                                                        <td class="px-4 py-3 font-medium text-gray-900">{{ $file['Key'] }}</td>
-                                                        <td class="px-4 py-3">{{ number_format($file['Size']) }}</td>
-                                                        <td class="px-4 py-3 text-right flex justify-end gap-2">
-                                                            <a href="{{ route('s3.downloadFile', ['bucket' => session('current_bucket'), 'key' => $file['Key']]) }}"
-                                                                class="text-blue-600 hover:underline">Download</a>
-                                                            <form class="ajax-delete-form" action="{{ route('s3.deleteFile') }}" method="POST">
-                                                                @csrf
-                                                                <input type="hidden" name="bucket_name" value="{{ session('current_bucket') }}">
-                                                                <input type="hidden" name="file_key" value="{{ $file['Key'] }}">
-                                                                <button type="submit" class="text-red-600 hover:underline">Delete</button>
-                                                            </form>
-                                                        </td>
-                                                    </tr>
-                                                @empty
-                                                    <tr>
-                                                        <td colspan="3" class="px-4 py-4 text-center text-gray-500">Bucket is empty.</td>
-                                                    </tr>
-                                                @endforelse
-                                            @endif
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <div id="danger-zone-container" class="mt-4 pt-4 border-t border-gray-200 {{ session('current_bucket') ? '' : 'hidden' }}">
-                                    
-                                    <!-- Modify Subscription Plan Feature -->
-                                    <div class="mb-5 pb-5 border-b border-gray-200">
-                                        <h5 class="text-sm font-semibold text-gray-800 mb-2">Modify Storage Plan</h5>
-                                        <form action="{{ route('s3.modifyPlan') }}" method="POST" class="flex flex-col sm:flex-row items-end gap-3">
-                                            @csrf
-                                            <input type="hidden" name="bucket_name" id="modify-plan-bucket" value="{{ session('current_bucket') }}">
-                                            <div class="flex-1 w-full">
-                                                <select name="target_plan_id" class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
-                                                    <option value="" disabled selected>Select a new storage plan...</option>
-                                                    @foreach ($storagePlans as $plan)
-                                                        <option value="{{ $plan->id }}">
-                                                            {{ $plan->plan_name }} ({{ $plan->storage_quota_gb }}GB) - Rp {{ number_format($plan->monthly_price, 0, ',', '.') }}/mo
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                            <button type="submit" class="w-full sm:w-auto bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 text-sm font-bold transition">Change Plan</button>
-                                        </form>
-                                    </div>
-
-                                    <form action="{{ route('s3.deleteBucket') }}" method="POST" onsubmit="return confirm('WARNING: Are you sure you want to terminate this bucket? This will stop billing and cannot be undone.');">
-                                        @csrf
-                                        <input type="hidden" name="bucket_name" id="danger-zone-bucket" value="{{ session('current_bucket') }}">
-                                        <button type="submit" class="text-sm text-red-600 font-medium hover:text-red-800 flex items-center gap-1">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                            </svg>
-                                            <span id="danger-zone-text">Terminate Service ({{ session('current_bucket') }})</span>
-                                        </button>
-                                    </form>
-                                </div>
-
-                                @if (session('current_bucket'))
-                                    <div class="mt-4 pt-4 border-t border-gray-200">
-                                        <!-- Modify Subscription Plan Feature -->
-                                        <div class="mb-5 pb-5 border-b border-gray-200">
-                                            <h5 class="text-sm font-semibold text-gray-800 mb-2">Modify Storage Plan</h5>
-                                            <form action="{{ route('s3.modifyPlan') }}" method="POST" class="flex flex-col sm:flex-row items-end gap-3">
-                                                @csrf
-                                                <input type="hidden" name="bucket_name" value="{{ session('current_bucket') }}">
-                                                <div class="flex-1 w-full">
-                                                    <select name="target_plan_id" class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
-                                                        <option value="" disabled selected>Select a new storage plan...</option>
-                                                        @foreach ($storagePlans as $plan)
-                                                            <option value="{{ $plan->id }}">
-                                                                {{ $plan->plan_name }} ({{ $plan->storage_quota_gb }}GB) - Rp {{ number_format($plan->monthly_price, 0, ',', '.') }}/mo
-                                                            </option>
-                                                        @endforeach
-                                                    </select>
-                                                </div>
-                                                <button type="submit" class="w-full sm:w-auto bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 text-sm font-bold transition">Change Plan</button>
-                                            </form>
-                                        </div>
-
-                                        <form action="{{ route('s3.deleteBucket') }}" method="POST" onsubmit="return confirm('WARNING: Are you sure you want to terminate this bucket? This will stop billing and cannot be undone.');">
-                                            @csrf
-                                            <input type="hidden" name="bucket_name" value="{{ session('current_bucket') }}">
-                                            <button type="submit" class="text-sm text-red-600 font-medium hover:text-red-800 flex items-center gap-1">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                                </svg>
-                                                Terminate Service ({{ session('current_bucket') }})
-                                            </button>
-                                        </form>
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-
-                    </div> <!-- End of TAB 2 -->
-
-                    <!-- TAB 3: EC2 COMPUTE -->
-                    <div x-show="activeTab === 'ec2'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-6" style="display: none;">
-                        
-                        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-semibold text-gray-800">EC2 Compute Management</h3>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {{-- Launch Instance Form --}}
-                                <div id="ec2-launch-form" class="bg-gray-50 p-5 rounded-lg border border-gray-200 hover:shadow-md transition">
-                                    <h4 class="font-medium text-gray-800 mb-4 flex items-center gap-2">
-                                        <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                        </svg>
-                                        Launch New Instance
-                                    </h4>
-                                    <form action="{{ route('ec2.launch') }}" method="POST">
-                                        @csrf
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Instance Name</label>
-                                        <p class="text-xs text-gray-500 mb-2">Letters, numbers, dots, hyphens, underscores.</p>
-                                        <input type="text" name="instance_name"
-                                            class="w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 mb-4"
-                                            placeholder="e.g., web-server-01" required>
-
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Compute Plan</label>
-                                        <select name="plan_id"
-                                            class="w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 mb-4"
-                                            required>
-                                            <option value="" disabled selected>Select a plan...</option>
-                                            @foreach ($computePlans as $plan)
-                                                <option value="{{ $plan->id }}">{{ $plan->plan_name }} ({{ $plan->compute_quota_vcpu }} vCPU) - Rp {{ number_format($plan->monthly_price, 0, ',', '.') }}/mo</option>
-                                            @endforeach
-                                        </select>
-
-                                        <button type="submit"
-                                            class="w-full bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition shadow-sm">Launch in MiniStack</button>
-                                    </form>
-                                </div>
-
-                                {{-- Instance Explorer --}}
-                                <div id="ec2-explorer-section" class="bg-gray-50 p-5 rounded-lg border border-gray-200 hover:shadow-md transition">
-                                    <h4 class="font-medium text-gray-800 mb-4 flex items-center gap-2">
-                                        <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                        Instance Explorer
-                                    </h4>
-
-                                    <button type="button" id="ec2-refresh-btn"
-                                        class="w-full bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition mb-4">Refresh Instances</button>
-
-                                    <div id="ec2-instance-container" class="bg-white border rounded-md overflow-hidden">
-                                        <table class="w-full text-sm text-left text-gray-500">
-                                            <thead class="text-xs text-gray-700 uppercase bg-gray-100">
-                                                <tr>
-                                                    <th class="px-3 py-3">Name</th>
-                                                    <th class="px-3 py-3">Instance ID</th>
-                                                    <th class="px-3 py-3">Type</th>
-                                                    <th class="px-3 py-3">State</th>
-                                                    <th class="px-3 py-3 text-right">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="ec2-instance-body">
-                                                @if (count($instancesData) > 0)
-                                                    @foreach ($instancesData as $inst)
-                                                        <tr class="border-b">
-                                                            <td class="px-3 py-3 font-medium text-gray-900">{{ $inst['instance_name'] }}</td>
-                                                            <td class="px-3 py-3 font-mono text-xs">{{ $inst['instance_id'] }}</td>
-                                                            <td class="px-3 py-3">{{ $inst['instance_type'] }}</td>
-                                                            <td class="px-3 py-3">
-                                                                @if ($inst['status'] === 'running')
-                                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">● running</span>
-                                                                @else
-                                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">● stopped</span>
-                                                                @endif
-                                                            </td>
-                                                            <td class="px-3 py-3 text-right">
-                                                                <div class="flex justify-end gap-1">
-                                                                    @if ($inst['status'] === 'running')
-                                                                        <form class="ec2-action-form" action="{{ route('ec2.stop') }}" method="POST">
-                                                                            @csrf
-                                                                            <input type="hidden" name="instance_id" value="{{ $inst['instance_id'] }}">
-                                                                            <button type="submit" class="text-yellow-600 hover:underline text-xs">Stop</button>
-                                                                        </form>
-                                                                    @else
-                                                                        <form class="ec2-action-form" action="{{ route('ec2.start') }}" method="POST">
-                                                                            @csrf
-                                                                            <input type="hidden" name="instance_id" value="{{ $inst['instance_id'] }}">
-                                                                            <button type="submit" class="text-green-600 hover:underline text-xs">Start</button>
-                                                                        </form>
-                                                                    @endif
-                                                                    <form class="ec2-action-form" action="{{ route('ec2.terminate') }}" method="POST" onsubmit="return confirm('WARNING: Terminate instance {{ $inst['instance_id'] }}? Billing will stop and this cannot be undone.');">
-                                                                        @csrf
-                                                                        <input type="hidden" name="instance_id" value="{{ $inst['instance_id'] }}">
-                                                                        <button type="submit" class="text-red-600 hover:underline text-xs">Terminate</button>
-                                                                    </form>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    @endforeach
-                                                @else
-                                                    <tr>
-                                                        <td colspan="5" class="px-4 py-4 text-center text-gray-500">No active instances. Launch one to get started.</td>
-                                                    </tr>
-                                                @endif
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div> <!-- End of TAB 3 -->
-
-                </main>
+                    </div>
+                </div>
             </div>
 
+            <!-- System Status -->
+            <div class="stat-card flex flex-col justify-between h-[380px]">
+                <div class="border-b border-outline-variant pb-sm mb-md">
+                    <h3 class="font-semibold text-primary">System Status</h3>
+                </div>
+                
+                <div class="flex-1 flex flex-col justify-around">
+                    <div>
+                        <div class="flex justify-between mb-sm font-mono text-xs">
+                            <span class="text-on-surface-variant">Compute Load</span>
+                            <span class="text-primary font-bold">{{ $ec2Count > 0 ? '45%' : '0%' }}</span>
+                        </div>
+                        <div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-primary h-full transition-all duration-500" style="width: {{ $ec2Count > 0 ? '45' : '0' }}%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-sm font-mono text-xs">
+                            <span class="text-on-surface-variant">Storage Utilized</span>
+                            <span class="text-primary font-bold">{{ $s3Count > 0 ? '32%' : '0%' }}</span>
+                        </div>
+                        <div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-outline h-full transition-all duration-500" style="width: {{ $s3Count > 0 ? '32' : '0' }}%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-sm font-mono text-xs">
+                            <span class="text-on-surface-variant">Network Bandwidth</span>
+                            <span class="text-primary font-bold">nominal</span>
+                        </div>
+                        <div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-outline-variant w-1/4 h-full"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
 
+        <!-- Recent Audit Logs -->
+        <div class="stat-card mt-lg">
+            <div class="border-b border-outline-variant pb-sm mb-lg flex justify-between items-center">
+                <h3 class="font-semibold text-primary">Log Aktivitas Terbaru</h3>
+                <a href="{{ route('dashboard', ['tab' => 'logs']) }}" class="text-xs text-on-surface-variant hover:text-primary transition-colors flex items-center gap-xs">
+                    View All <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                </a>
+            </div>
+
+            <div class="space-y-4">
+                @forelse ($recentActivities as $log)
+                    <div class="flex items-start gap-4 pb-4 border-b border-outline-variant/30 last:border-0 last:pb-0">
+                        <div class="flex-shrink-0 mt-0.5">
+                            @if($log->action_type == 'create')
+                                <div class="flex items-center justify-center h-8 w-8 rounded bg-primary text-on-primary-fixed">
+                                    <span class="material-symbols-outlined text-sm">add</span>
+                                </div>
+                            @elseif($log->action_type == 'delete')
+                                <div class="flex items-center justify-center h-8 w-8 rounded bg-error/15 text-error">
+                                    <span class="material-symbols-outlined text-sm">delete</span>
+                                </div>
+                            @else
+                                <div class="flex items-center justify-center h-8 w-8 rounded bg-surface-container-highest text-primary">
+                                    <span class="material-symbols-outlined text-sm">info</span>
+                                </div>
+                            @endif
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-center">
+                                <p class="text-sm font-semibold text-primary capitalize">
+                                    {{ $log->action_type }} Resource
+                                </p>
+                                <span class="font-mono text-[10px] text-on-surface-variant">
+                                    {{ \Carbon\Carbon::parse($log->created_at)->diffForHumans() }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-on-surface-variant mt-1">
+                                {{ $log->description }}
+                            </p>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center py-8 text-on-surface-variant text-sm border border-dashed border-outline-variant rounded">
+                        Belum ada riwayat aktivitas penyewaan.
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    @endif
+
+    {{-- ============================================================ --}}
+    {{-- RESOURCES TAB --}}
+    {{-- ============================================================ --}}
+    @if ($tab === 'resources')
+        <!-- Resource Quotas -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter mb-lg">
+            <!-- S3 Quotas -->
+            <div class="stat-card flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-start mb-md">
+                        <h3 class="font-semibold text-primary">S3 Storage Quotas</h3>
+                        <span class="bg-primary/10 text-primary border border-outline-variant px-2.5 py-0.5 rounded-full font-mono text-[10px] font-bold">
+                            {{ count($bucketsData) }} Active
+                        </span>
+                    </div>
+
+                    @if (count($bucketsData) > 0)
+                        <div class="mb-md">
+                            <label class="block font-mono text-[10px] text-on-surface-variant mb-2 uppercase">Select Bucket to View</label>
+                            <select id="bucket-selector" class="w-full bg-surface-container-lowest border border-outline-variant rounded p-2 text-sm">
+                                @foreach ($bucketsData as $index => $bucket)
+                                    <option value="{{ $index }}">{{ $bucket['name'] }} ({{ $bucket['totalGB'] }}GB Plan)</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="mb-md">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-on-surface-variant font-medium">Capacity Used</span>
+                                <span id="display-size-text" class="text-xs font-bold text-primary font-mono">
+                                    {{ $bucketsData[0]['displaySize'] }} / {{ $bucketsData[0]['totalGB'] }} GB ({{ number_format($bucketsData[0]['percentage'], 0) }}%)
+                                </span>
+                            </div>
+                            <div class="w-full bg-surface-container-highest rounded-full h-1.5 overflow-hidden">
+                                <div id="capacity-progress-bar" class="bg-primary h-full transition-all duration-500" style="width: {{ $bucketsData[0]['percentage'] }}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between text-xs font-mono">
+                            <span class="text-on-surface-variant">Available Storage</span>
+                            <span id="available-storage-text" class="font-bold text-primary">{{ $bucketsData[0]['available'] }}</span>
+                        </div>
+                    @else
+                        <div class="text-center py-6 text-on-surface-variant text-xs border border-dashed border-outline-variant rounded font-mono">
+                            No active S3 buckets found.
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            <!-- EC2 Quotas -->
+            <div class="stat-card flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-start mb-md">
+                        <h3 class="font-semibold text-primary">EC2 Compute Quotas</h3>
+                        <span class="bg-primary/10 text-primary border border-outline-variant px-2.5 py-0.5 rounded-full font-mono text-[10px] font-bold">
+                            {{ count($instancesData) }} Active
+                        </span>
+                    </div>
+
+                    @if (count($instancesData) > 0)
+                        @php
+                            $totalVcpus = 0;
+                            $runningCount = 0;
+                            $stoppedCount = 0;
+                            foreach ($instancesData as $inst) {
+                                $vcpu = match ($inst['instance_type']) {
+                                    't2.micro' => 1,
+                                    't2.small' => 2,
+                                    't2.medium' => 4,
+                                    default => 1,
+                                };
+                                $totalVcpus += $vcpu;
+                                if ($inst['status'] === 'running') {
+                                    $runningCount++;
+                                } else {
+                                    $stoppedCount++;
+                                }
+                            }
+                        @endphp
+                        <div class="grid grid-cols-3 gap-md font-mono text-center">
+                            <div class="bg-surface-container-lowest p-2 border border-outline-variant rounded">
+                                <span class="block text-[10px] text-on-surface-variant uppercase">Total vCPUs</span>
+                                <span class="text-lg font-bold text-primary mt-1 block">{{ $totalVcpus }}</span>
+                            </div>
+                            <div class="bg-surface-container-lowest p-2 border border-outline-variant rounded">
+                                <span class="block text-[10px] text-on-surface-variant uppercase text-secondary">Running</span>
+                                <span class="text-lg font-bold text-primary mt-1 block">{{ $runningCount }}</span>
+                            </div>
+                            <div class="bg-surface-container-lowest p-2 border border-outline-variant rounded">
+                                <span class="block text-[10px] text-on-surface-variant uppercase">Stopped</span>
+                                <span class="text-lg font-bold text-primary mt-1 block">{{ $stoppedCount }}</span>
+                            </div>
+                        </div>
+                    @else
+                        <div class="text-center py-6 text-on-surface-variant text-xs border border-dashed border-outline-variant rounded font-mono">
+                            No active EC2 compute instances found.
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <script>
+            window.userBucketsData = @json($bucketsData);
+        </script>
+
+        <!-- S3 and EC2 Management Canvas -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-lg">
+            <!-- EC2 Compute Section -->
+            <div class="space-y-lg">
+                <!-- Launch Instance Form -->
+                <div id="launch-instance" class="stat-card">
+                    <div class="border-b border-outline-variant pb-sm mb-md flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">dns</span>
+                        <h3 class="font-semibold text-primary">Launch New EC2 Compute</h3>
+                    </div>
+                    <form action="{{ route('ec2.launch') }}" method="POST" class="space-y-md">
+                        @csrf
+                        <div>
+                            <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Instance Name</label>
+                            <input type="text" name="instance_name" class="w-full text-sm" placeholder="e.g., prod-web-server" required>
+                            <span class="text-[10px] text-on-surface-variant mt-1 block">Supported format: letters, numbers, dot, hyphens, underscores.</span>
+                        </div>
+                        <div>
+                            <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Compute Plan</label>
+                            <select name="plan_id" class="w-full text-sm" required>
+                                <option value="" disabled selected>-- Select Compute Plan --</option>
+                                @foreach ($computePlans as $plan)
+                                    <option value="{{ $plan->id }}">{{ $plan->plan_name }} ({{ $plan->compute_quota_vcpu }} vCPU) - ${{ $plan->monthly_price }}/mo</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary w-full py-2 text-sm rounded">
+                            Launch in MiniStack
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Instance Explorer -->
+                <div class="stat-card">
+                    <div class="border-b border-outline-variant pb-sm mb-md flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary">explore</span>
+                            <h3 class="font-semibold text-primary">Instance Explorer</h3>
+                        </div>
+                    </div>
+
+                    <div class="border border-outline-variant rounded overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-left border-collapse whitespace-nowrap">
+                                <thead class="bg-surface border-b border-outline-variant">
+                                    <tr class="font-mono text-on-surface-variant uppercase">
+                                        <th class="px-3 py-3 w-1/3">Name</th>
+                                        <th class="px-3 py-3">Instance ID</th>
+                                        <th class="px-3 py-3">State</th>
+                                        <th class="px-3 py-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ec2-instance-body" class="divide-y divide-outline-variant">
+                                    @forelse ($instancesData as $inst)
+                                        <tr class="hover:bg-surface-container-highest transition-colors">
+                                            <td class="px-3 py-3">
+                                                <span class="font-semibold text-primary block">{{ $inst['instance_name'] }}</span>
+                                                <span class="font-mono text-[10px] text-on-surface-variant">{{ $inst['instance_type'] }}</span>
+                                            </td>
+                                            <td class="px-3 py-3 font-mono">{{ $inst['instance_id'] }}</td>
+                                            <td class="px-3 py-3">
+                                                @if ($inst['status'] === 'running')
+                                                    <span class="inline-flex items-center gap-1 bg-primary text-on-primary-fixed rounded-full px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase">
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-on-primary-fixed animate-pulse"></span>
+                                                        Running
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center gap-1 border border-outline-variant text-on-surface-variant rounded-full px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase">
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-on-surface-variant"></span>
+                                                        Stopped
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="px-3 py-3 text-right">
+                                                <div class="flex justify-end gap-1.5">
+                                                    @if ($inst['status'] === 'running')
+                                                        <form class="ec2-action-form" action="{{ route('ec2.stop') }}" method="POST">
+                                                            @csrf
+                                                            <input type="hidden" name="instance_id" value="{{ $inst['instance_id'] }}">
+                                                            <button type="submit" class="p-1 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded transition-colors" title="Stop Instance">
+                                                                <span class="material-symbols-outlined text-sm">stop</span>
+                                                            </button>
+                                                        </form>
+                                                    @else
+                                                        <form class="ec2-action-form" action="{{ route('ec2.start') }}" method="POST">
+                                                            @csrf
+                                                            <input type="hidden" name="instance_id" value="{{ $inst['instance_id'] }}">
+                                                            <button type="submit" class="p-1 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded transition-colors" title="Start Instance">
+                                                                <span class="material-symbols-outlined text-sm">play_arrow</span>
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                    <form class="ec2-action-form" action="{{ route('ec2.terminate') }}" method="POST" onsubmit="return confirm('WARNING: Terminate instance {{ $inst['instance_id'] }}? Billing will stop and this cannot be undone.');">
+                                                        @csrf
+                                                        <input type="hidden" name="instance_id" value="{{ $inst['instance_id'] }}">
+                                                        <button type="submit" class="p-1 text-on-surface-variant hover:text-error hover:bg-error/10 rounded transition-colors" title="Terminate Instance">
+                                                            <span class="material-symbols-outlined text-sm">delete</span>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="4" class="px-4 py-8 text-center text-on-surface-variant font-mono">
+                                                No compute instances found.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- S3 Storage Section -->
+            <div class="space-y-lg">
+                <!-- Create Bucket Form -->
+                <div class="stat-card">
+                    <div class="border-b border-outline-variant pb-sm mb-md flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">hard_drive</span>
+                        <h3 class="font-semibold text-primary">Provision Isolated S3 Storage</h3>
+                    </div>
+                    <form action="{{ route('s3.createBucket') }}" method="POST" class="space-y-md">
+                        @csrf
+                        <div>
+                            <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Bucket Name</label>
+                            <input type="text" name="bucket_name" class="w-full text-sm" placeholder="e.g., iaas-object-bucket" required>
+                            <span class="text-[10px] text-on-surface-variant mt-1 block">Must be lowercase, alphanumeric, without spaces.</span>
+                        </div>
+                        <div>
+                            <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Storage Plan</label>
+                            <select name="plan_id" class="w-full text-sm" required>
+                                <option value="" disabled selected>-- Select Storage Plan --</option>
+                                @foreach ($storagePlans as $plan)
+                                    <option value="{{ $plan->id }}">{{ $plan->plan_name }} ({{ $plan->storage_quota_gb }}GB) - ${{ $plan->monthly_price }}/mo</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary w-full py-2 text-sm rounded">
+                            Provision in MiniStack
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Upload File Form -->
+                <div id="upload-form" class="stat-card">
+                    <div class="border-b border-outline-variant pb-sm mb-md flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">upload</span>
+                        <h3 class="font-semibold text-primary">Upload File to S3 Bucket</h3>
+                    </div>
+                    <form action="{{ route('s3.uploadObject') }}" method="POST" enctype="multipart/form-data" class="space-y-md">
+                        @csrf
+                        <div>
+                            <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Target Bucket</label>
+                            @if (count($bucketsData) > 0)
+                                <select name="bucket_name" class="w-full text-sm" required>
+                                    <option value="" disabled selected>-- Select Target Bucket --</option>
+                                    @foreach ($bucketsData as $bucket)
+                                        <option value="{{ $bucket['name'] }}">{{ $bucket['name'] }}</option>
+                                    @endforeach
+                                </select>
+                            @else
+                                <input type="text" disabled class="w-full text-sm bg-surface-container-lowest text-on-surface-variant cursor-not-allowed" placeholder="No active buckets available.">
+                            @endif
+                        </div>
+                        <div>
+                            <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Select Files</label>
+                            <input type="file" name="files[]" multiple class="w-full text-xs bg-surface-container-lowest border border-outline-variant rounded p-2 text-on-surface file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-surface-container-highest file:text-primary hover:file:opacity-90" required>
+                        </div>
+                        <button type="submit" class="btn-primary w-full py-2 text-sm rounded" {{ count($bucketsData) === 0 ? 'disabled' : '' }}>
+                            Upload to MiniStack
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Storage Explorer & Terminate -->
+                <div class="stat-card">
+                    <div class="border-b border-outline-variant pb-sm mb-md flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">folder_open</span>
+                        <h3 class="font-semibold text-primary">Storage Explorer</h3>
+                    </div>
+                    
+                    <form id="explorer-form" action="{{ route('s3.viewFiles') }}" method="POST" class="flex gap-2 mb-md">
+                        @csrf
+                        @if (count($bucketsData) > 0)
+                            <select name="bucket_name" class="flex-1 text-xs" required>
+                                <option value="" disabled {{ !session('current_bucket') ? 'selected' : '' }}>Select bucket to explore...</option>
+                                @foreach ($bucketsData as $bucket)
+                                    <option value="{{ $bucket['name'] }}" {{ session('current_bucket') === $bucket['name'] ? 'selected' : '' }}>
+                                        {{ $bucket['name'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <button type="submit" id="explorer-btn" class="btn-secondary px-3 py-1.5 text-xs rounded font-semibold whitespace-nowrap">Open Explorer</button>
+                        @else
+                            <input type="text" disabled class="flex-1 text-xs bg-surface-container-lowest text-on-surface-variant cursor-not-allowed" placeholder="No active buckets.">
+                            <button type="button" disabled class="btn-secondary opacity-50 cursor-not-allowed px-3 py-1.5 text-xs rounded font-semibold whitespace-nowrap">Open Explorer</button>
+                        @endif
+                    </form>
+
+                    <!-- File Explorer Table -->
+                    <div id="file-explorer-container" class="border border-outline-variant rounded overflow-hidden mb-md {{ session('files') ? '' : 'hidden' }}">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-left border-collapse whitespace-nowrap">
+                                <thead class="bg-surface border-b border-outline-variant">
+                                    <tr class="font-mono text-on-surface-variant uppercase">
+                                        <th class="px-3 py-2">File Name</th>
+                                        <th class="px-3 py-2">Size</th>
+                                        <th class="px-3 py-2 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="file-explorer-body" class="divide-y divide-outline-variant">
+                                    @if (session('files'))
+                                        @forelse(session('files') as $file)
+                                            <tr class="hover:bg-surface-container-highest transition-colors">
+                                                <td class="px-3 py-2 font-semibold text-primary">{{ $file['Key'] }}</td>
+                                                <td class="px-3 py-2 font-mono text-[10px]">{{ number_format($file['Size']) }} B</td>
+                                                <td class="px-3 py-2 text-right">
+                                                    <div class="flex justify-end gap-2">
+                                                        <a href="{{ route('s3.downloadFile', ['bucket' => session('current_bucket'), 'key' => $file['Key']]) }}" class="text-primary hover:underline font-semibold">Download</a>
+                                                        <form class="ajax-delete-form" action="{{ route('s3.deleteFile') }}" method="POST">
+                                                            @csrf
+                                                            <input type="hidden" name="bucket_name" value="{{ session('current_bucket') }}">
+                                                            <input type="hidden" name="file_key" value="{{ $file['Key'] }}">
+                                                            <button type="submit" class="text-error hover:underline font-semibold">Delete</button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="3" class="px-3 py-4 text-center text-on-surface-variant font-mono">Bucket is empty.</td>
+                                            </tr>
+                                        @endforelse
+                                    @endif
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Danger Zone Terminate Bucket -->
+                    <div id="danger-zone-container" class="border-t border-outline-variant pt-md {{ session('current_bucket') ? '' : 'hidden' }}">
+                        <form action="{{ route('s3.deleteBucket') }}" method="POST" onsubmit="return confirm('WARNING: Terminate this storage bucket? Billing will stop and all stored files will be permanently deleted.');">
+                            @csrf
+                            <input type="hidden" name="bucket_name" id="danger-zone-bucket" value="{{ session('current_bucket') }}">
+                            <button type="submit" class="text-xs text-error hover:bg-error/10 border border-error/30 hover:border-error px-3 py-1.5 rounded transition-all font-semibold flex items-center gap-xs">
+                                <span class="material-symbols-outlined text-sm">delete_forever</span>
+                                <span id="danger-zone-text">Terminate Service ({{ session('current_bucket') }})</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    @if (session('current_bucket') && !session('files'))
+                        <div class="border-t border-outline-variant pt-md mt-md">
+                            <form action="{{ route('s3.deleteBucket') }}" method="POST" onsubmit="return confirm('WARNING: Terminate this storage bucket? Billing will stop and all stored files will be permanently deleted.');">
+                                @csrf
+                                <input type="hidden" name="bucket_name" value="{{ session('current_bucket') }}">
+                                <button type="submit" class="text-xs text-error hover:bg-error/10 border border-error/30 hover:border-error px-3 py-1.5 rounded transition-all font-semibold flex items-center gap-xs">
+                                    <span class="material-symbols-outlined text-sm">delete_forever</span>
+                                    <span>Terminate Service ({{ session('current_bucket') }})</span>
+                                </button>
+                            </form>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- ============================================================ --}}
+    {{-- PAKET LANGGANAN TAB --}}
+    {{-- ============================================================ --}}
+    @if ($tab === 'plans')
+        <div class="space-y-xl">
+            <!-- Compute Plans -->
+            <div>
+                <h3 class="font-bold text-lg text-primary mb-md flex items-center gap-sm">
+                    <span class="material-symbols-outlined">dns</span>
+                    <span>EC2 Compute Tiers</span>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-lg">
+                    @foreach ($computePlans as $plan)
+                        <div class="bg-surface border border-outline-variant rounded-lg p-lg flex flex-col hover:border-primary transition-colors duration-300 relative overflow-hidden group">
+                            <div class="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                            <div class="mb-md">
+                                <h4 class="font-bold text-lg text-primary">{{ $plan->plan_name }}</h4>
+                                <p class="text-xs text-on-surface-variant mt-1">Dedicated instance with high availability SLA.</p>
+                            </div>
+                            <div class="flex items-baseline gap-1 border-b border-outline-variant pb-md mb-md">
+                                <span class="text-3xl font-bold text-primary">${{ number_format($plan->monthly_price) }}</span>
+                                <span class="font-mono text-xs text-on-surface-variant">/mo</span>
+                            </div>
+                            <div class="flex-1 flex flex-col gap-sm mb-lg">
+                                <div class="flex justify-between py-2 border-b border-outline-variant/30 text-xs font-mono">
+                                    <span class="text-on-surface-variant flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-sm">memory</span> vCPUs
+                                    </span>
+                                    <span class="text-primary font-bold">{{ $plan->compute_quota_vcpu }} Cores</span>
+                                </div>
+                                <div class="flex justify-between py-2 border-b border-outline-variant/30 text-xs font-mono">
+                                    <span class="text-on-surface-variant flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-sm">memory_alt</span> RAM limit
+                                    </span>
+                                    <span class="text-primary font-bold">{{ $plan->compute_quota_vcpu * 2 }} GB ECC</span>
+                                </div>
+                                <div class="flex justify-between py-2 text-xs font-mono">
+                                    <span class="text-on-surface-variant flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-sm">network_check</span> Bandwidth
+                                    </span>
+                                    <span class="text-primary font-bold">1 Gbps Shared</span>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Storage Plans -->
+            <div>
+                <h3 class="font-bold text-lg text-primary mb-md flex items-center gap-sm mt-lg">
+                    <span class="material-symbols-outlined">hard_drive</span>
+                    <span>S3 Object Storage Tiers</span>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-lg">
+                    @foreach ($storagePlans as $plan)
+                        <div class="bg-surface border border-outline-variant rounded-lg p-lg flex flex-col hover:border-primary transition-colors duration-300 relative overflow-hidden group">
+                            <div class="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                            <div class="mb-md">
+                                <h4 class="font-bold text-lg text-primary">{{ $plan->plan_name }}</h4>
+                                <p class="text-xs text-on-surface-variant mt-1">Multi-region redundancy object storage bucket.</p>
+                            </div>
+                            <div class="flex items-baseline gap-1 border-b border-outline-variant pb-md mb-md">
+                                <span class="text-3xl font-bold text-primary">${{ number_format($plan->monthly_price) }}</span>
+                                <span class="font-mono text-xs text-on-surface-variant">/mo</span>
+                            </div>
+                            <div class="flex-1 flex flex-col gap-sm mb-lg">
+                                <div class="flex justify-between py-2 border-b border-outline-variant/30 text-xs font-mono">
+                                    <span class="text-on-surface-variant flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-sm">storage</span> Storage Cap
+                                    </span>
+                                    <span class="text-primary font-bold">{{ $plan->storage_quota_gb }} GB SSD</span>
+                                </div>
+                                <div class="flex justify-between py-2 border-b border-outline-variant/30 text-xs font-mono">
+                                    <span class="text-on-surface-variant flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-sm">cloud_upload</span> Transfer limit
+                                    </span>
+                                    <span class="text-primary font-bold">Unlimited</span>
+                                </div>
+                                <div class="flex justify-between py-2 text-xs font-mono">
+                                    <span class="text-on-surface-variant flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-sm">security</span> Redundancy
+                                    </span>
+                                    <span class="text-primary font-bold">99.99999%</span>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- ============================================================ --}}
+    {{-- KREDENSIAL API TAB --}}
+    {{-- ============================================================ --}}
+    @if ($tab === 'credentials')
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-lg">
+            <!-- Credentials List -->
+            <div class="lg:col-span-2 space-y-md">
+                <div class="stat-card">
+                    <div class="border-b border-outline-variant pb-sm mb-md flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">key</span>
+                        <h3 class="font-semibold text-primary">Akses Kredensial API Aktif</h3>
+                    </div>
+
+                    @if ($userCredentials->count() > 0)
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            @foreach ($userCredentials as $cred)
+                                <div class="bg-surface-container-lowest p-4 rounded border border-outline-variant relative">
+                                    <div class="absolute top-3 right-3 font-mono text-[9px] font-bold text-on-primary-fixed bg-primary px-2 py-0.5 rounded uppercase">
+                                        {{ $cred->resource_type }}
+                                    </div>
+                                    <h4 class="font-bold text-primary mb-3 text-sm">{{ $cred->instance_name }}</h4>
+
+                                    <div class="mb-3">
+                                        <span class="block font-mono text-[10px] text-on-surface-variant uppercase mb-1">Access Key ID:</span>
+                                        <code class="bg-surface-container border border-outline-variant px-2 py-1 rounded text-xs text-primary block w-full truncate font-mono select-all">
+                                            {{ $cred->access_key }}
+                                        </code>
+                                    </div>
+                                    <div>
+                                        <span class="block font-mono text-[10px] text-on-surface-variant uppercase mb-1">Secret Access Key:</span>
+                                        <code class="bg-surface-container border border-outline-variant px-2 py-1 rounded text-xs text-primary block w-full truncate font-mono select-all">
+                                            {{ decrypt($cred->secret_key_encrypted) }}
+                                        </code>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-xs text-on-surface-variant italic border-l-2 border-outline-variant pl-3 font-mono">
+                            Anda belum memiliki kunci API untuk layanan apa pun.
+                        </p>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Generate New Credentials -->
+            <div class="stat-card h-fit">
+                <div class="border-b border-outline-variant pb-sm mb-md flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">lock_reset</span>
+                    <h3 class="font-semibold text-primary">Generate Kredensial Baru</h3>
+                </div>
+
+                @if ($availableResourcesForKey->count() > 0)
+                    <form action="{{ route('s3.generateCredentials') }}" method="POST" class="space-y-md">
+                        @csrf
+                        <div>
+                            <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Pilih Layanan Aktif</label>
+                            <select name="provisioned_id" class="w-full text-sm" required>
+                                <option value="" disabled selected>-- Select Active Resource --</option>
+                                @foreach ($availableResourcesForKey as $res)
+                                    <option value="{{ $res->id }}">
+                                        [{{ strtoupper($res->resource_type) }}] - {{ $res->instance_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary w-full py-2 text-sm rounded">
+                            Request Access Key
+                        </button>
+                    </form>
+                @else
+                    <div class="bg-surface-container-lowest text-on-surface-variant p-4 rounded text-xs border border-outline-variant font-mono">
+                        Semua layanan Anda saat ini sudah memiliki Kredensial API, atau Anda belum memiliki layanan aktif.
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
+
+    {{-- ============================================================ --}}
+    {{-- AUDIT LOGS TAB --}}
+    {{-- ============================================================ --}}
+    @if ($tab === 'logs')
+        <div class="stat-card">
+            <div class="border-b border-outline-variant pb-sm mb-lg">
+                <h3 class="font-semibold text-primary">Riwayat Aktivitas Penyewaan</h3>
+            </div>
+
+            <div class="space-y-4">
+                @forelse ($recentActivities as $log)
+                    <div class="flex items-start gap-4 pb-4 border-b border-outline-variant/30 last:border-0 last:pb-0">
+                        <div class="flex-shrink-0 mt-0.5">
+                            @if($log->action_type == 'create')
+                                <div class="flex items-center justify-center h-8 w-8 rounded bg-primary text-on-primary-fixed">
+                                    <span class="material-symbols-outlined text-sm">add</span>
+                                </div>
+                            @elseif($log->action_type == 'delete')
+                                <div class="flex items-center justify-center h-8 w-8 rounded bg-error/15 text-error">
+                                    <span class="material-symbols-outlined text-sm">delete</span>
+                                </div>
+                            @else
+                                <div class="flex items-center justify-center h-8 w-8 rounded bg-surface-container-highest text-primary">
+                                    <span class="material-symbols-outlined text-sm">info</span>
+                                </div>
+                            @endif
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-center">
+                                <p class="text-sm font-semibold text-primary capitalize">
+                                    {{ $log->action_type }} Resource
+                                </p>
+                                <span class="font-mono text-[10px] text-on-surface-variant">
+                                    {{ \Carbon\Carbon::parse($log->created_at)->format('d M Y H:i:s') }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-on-surface-variant mt-1">
+                                {{ $log->description }}
+                            </p>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center py-8 text-on-surface-variant text-sm border border-dashed border-outline-variant rounded">
+                        Belum ada riwayat aktivitas penyewaan.
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    @endif
+
+    {{-- Script for AJAX Forms --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
 
@@ -762,8 +862,7 @@
 
             bindAjaxDeleteForms();
 
-
-            // --- FEATURE: AJAX STORAGE EXPLORER ---
+            // FEATURE 2: AJAX STORAGE EXPLORER
             const explorerForm = document.getElementById('explorer-form');
             if (explorerForm) {
                 explorerForm.addEventListener('submit', function(e) {
@@ -799,7 +898,7 @@
 
                                 if (data.files.length === 0) {
                                     tbody.innerHTML =
-                                        `<tr><td colspan="3" class="px-4 py-4 text-center text-gray-500">Bucket is empty.</td></tr>`;
+                                        `<tr><td colspan="3" class="px-3 py-4 text-center text-on-surface-variant font-mono">Bucket is empty.</td></tr>`;
                                 } else {
                                     data.files.forEach(file => {
                                         const sizeFmt = new Intl.NumberFormat().format(file.Size);
@@ -807,20 +906,22 @@
                                         const token = document.querySelector('input[name="_token"]').value;
 
                                         tbody.innerHTML += `
-                                    <tr class="border-b">
-                                        <td class="px-4 py-3 font-medium text-gray-900">${file.Key}</td>
-                                        <td class="px-4 py-3">${sizeFmt}</td>
-                                        <td class="px-4 py-3 text-right flex justify-end gap-2">
-                                            <a href="${downloadUrl}" class="text-blue-600 hover:underline">Download</a>
-                                            <form class="ajax-delete-form" action="/s3/delete-file" method="POST">
-                                                <input type="hidden" name="_token" value="${token}">
-                                                <input type="hidden" name="bucket_name" value="${bucketName}">
-                                                <input type="hidden" name="file_key" value="${file.Key}">
-                                                <button type="submit" class="text-red-600 hover:underline">Delete</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                `;
+                                            <tr class="hover:bg-surface-container-highest transition-colors">
+                                                <td class="px-3 py-2 font-semibold text-primary">${file.Key}</td>
+                                                <td class="px-3 py-2 font-mono text-[10px]">${sizeFmt} B</td>
+                                                <td class="px-3 py-2 text-right">
+                                                    <div class="flex justify-end gap-2">
+                                                        <a href="${downloadUrl}" class="text-primary hover:underline font-semibold">Download</a>
+                                                        <form class="ajax-delete-form" action="/s3/delete-file" method="POST">
+                                                            <input type="hidden" name="_token" value="${token}">
+                                                            <input type="hidden" name="bucket_name" value="${bucketName}">
+                                                            <input type="hidden" name="file_key" value="${file.Key}">
+                                                            <button type="submit" class="text-error hover:underline font-semibold">Delete</button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        `;
                                     });
                                     bindAjaxDeleteForms();
                                 }
@@ -828,10 +929,6 @@
                                 document.getElementById('danger-zone-container').classList.remove('hidden');
                                 document.getElementById('danger-zone-bucket').value = bucketName;
                                 document.getElementById('danger-zone-text').innerText = `Terminate Service (${bucketName})`;
-                                const modifyPlanBucket = document.getElementById('modify-plan-bucket');
-                                if (modifyPlanBucket) {
-                                    modifyPlanBucket.value = bucketName;
-                                }
                             }
                         })
                         .catch(() => {
@@ -842,7 +939,7 @@
                 });
             }
 
-            // FEATURE 2: DYNAMIC BUCKET QUOTA SELECTOR
+            // FEATURE 3: DYNAMIC BUCKET QUOTA SELECTOR
             const bucketSelector = document.getElementById('bucket-selector');
             if (bucketSelector && window.userBucketsData) {
                 bucketSelector.addEventListener('change', function() {
@@ -855,16 +952,15 @@
 
                     const progressBar = document.getElementById('capacity-progress-bar');
                     progressBar.style.width = bucket.percentage + '%';
-                    progressBar.className = `${bucket.colorClass} h-2 rounded-full transition-all duration-500`;
                 });
             }
 
-            // FEATURE 3: EC2 INSTANCE EXPLORER REFRESH
+            // FEATURE 4: EC2 INSTANCE EXPLORER REFRESH
             const ec2RefreshBtn = document.getElementById('ec2-refresh-btn');
             if (ec2RefreshBtn) {
                 ec2RefreshBtn.addEventListener('click', function() {
-                    const originalText = this.innerText;
-                    this.innerText = 'Refreshing...';
+                    const originalText = this.innerHTML;
+                    this.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">sync</span> Syncing...';
                     this.disabled = true;
 
                     fetch('/ec2/list', {
@@ -876,7 +972,7 @@
                         })
                         .then(res => res.json())
                         .then(data => {
-                            this.innerText = originalText;
+                            this.innerHTML = originalText;
                             this.disabled = false;
 
                             if (data.success) {
@@ -885,57 +981,59 @@
 
                                 if (data.instances.length === 0) {
                                     tbody.innerHTML =
-                                        `<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">No active instances. Launch one to get started.</td></tr>`;
+                                        `<tr><td colspan="4" class="px-4 py-8 text-center text-on-surface-variant font-mono">No compute instances found.</td></tr>`;
                                 } else {
                                     data.instances.forEach(inst => {
                                         const stateBadge = inst.status === 'running' ?
-                                            `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">● running</span>` :
-                                            `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">● stopped</span>`;
+                                            `<span class="inline-flex items-center gap-1 bg-primary text-on-primary-fixed rounded-full px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase"><span class="w-1.5 h-1.5 rounded-full bg-on-primary-fixed animate-pulse"></span>Running</span>` :
+                                            `<span class="inline-flex items-center gap-1 border border-outline-variant text-on-surface-variant rounded-full px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase"><span class="w-1.5 h-1.5 rounded-full bg-on-surface-variant"></span>Stopped</span>`;
 
                                         const actionBtn = inst.status === 'running' ?
                                             `<form class="ec2-action-form" action="/ec2/stop" method="POST">
-                                            <input type="hidden" name="_token" value="${document.querySelector('input[name="_token"]').value}">
-                                            <input type="hidden" name="instance_id" value="${inst.instance_id}">
-                                            <button type="submit" class="text-yellow-600 hover:underline text-xs">Stop</button>
-                                        </form>` :
+                                                <input type="hidden" name="_token" value="${document.querySelector('input[name="_token"]').value}">
+                                                <input type="hidden" name="instance_id" value="${inst.instance_id}">
+                                                <button type="submit" class="p-1 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded transition-colors" title="Stop Instance"><span class="material-symbols-outlined text-sm">stop</span></button>
+                                            </form>` :
                                             `<form class="ec2-action-form" action="/ec2/start" method="POST">
-                                            <input type="hidden" name="_token" value="${document.querySelector('input[name="_token"]').value}">
-                                            <input type="hidden" name="instance_id" value="${inst.instance_id}">
-                                            <button type="submit" class="text-green-600 hover:underline text-xs">Start</button>
-                                        </form>`;
+                                                <input type="hidden" name="_token" value="${document.querySelector('input[name="_token"]').value}">
+                                                <input type="hidden" name="instance_id" value="${inst.instance_id}">
+                                                <button type="submit" class="p-1 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded transition-colors" title="Start Instance"><span class="material-symbols-outlined text-sm">play_arrow</span></button>
+                                            </form>`;
 
                                         tbody.innerHTML += `
-                                    <tr class="border-b">
-                                        <td class="px-3 py-3 font-medium text-gray-900">${inst.instance_name}</td>
-                                        <td class="px-3 py-3 font-mono text-xs">${inst.instance_id}</td>
-                                        <td class="px-3 py-3">${inst.instance_type}</td>
-                                        <td class="px-3 py-3">${stateBadge}</td>
-                                        <td class="px-3 py-3 text-right">
-                                            <div class="flex justify-end gap-1">
-                                                ${actionBtn}
-                                                <form class="ec2-action-form" action="/ec2/terminate" method="POST" onsubmit="return confirm('WARNING: Terminate instance ${inst.instance_id}? Billing will stop and this cannot be undone.');">
-                                                    <input type="hidden" name="_token" value="${document.querySelector('input[name="_token"]').value}">
-                                                    <input type="hidden" name="instance_id" value="${inst.instance_id}">
-                                                    <button type="submit" class="text-red-600 hover:underline text-xs">Terminate</button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                `;
+                                            <tr class="hover:bg-surface-container-highest transition-colors">
+                                                <td class="px-3 py-3">
+                                                    <span class="font-semibold text-primary block">${inst.instance_name}</span>
+                                                    <span class="font-mono text-[10px] text-on-surface-variant">${inst.instance_type}</span>
+                                                </td>
+                                                <td class="px-3 py-3 font-mono">${inst.instance_id}</td>
+                                                <td class="px-3 py-3">${stateBadge}</td>
+                                                <td class="px-3 py-3 text-right">
+                                                    <div class="flex justify-end gap-1.5">
+                                                        ${actionBtn}
+                                                        <form class="ec2-action-form" action="/ec2/terminate" method="POST" onsubmit="return confirm('WARNING: Terminate instance ${inst.instance_id}? Billing will stop and this cannot be undone.');">
+                                                            <input type="hidden" name="_token" value="${document.querySelector('input[name="_token"]').value}">
+                                                            <input type="hidden" name="instance_id" value="${inst.instance_id}">
+                                                            <button type="submit" class="p-1 text-on-surface-variant hover:text-error hover:bg-error/10 rounded transition-colors" title="Terminate Instance"><span class="material-symbols-outlined text-sm">delete</span></button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        `;
                                     });
                                     bindEc2ActionForms();
                                 }
                             }
                         })
                         .catch(() => {
-                            this.innerText = originalText;
+                            this.innerHTML = originalText;
                             this.disabled = false;
                             alert('Network error while refreshing instances.');
                         });
                 });
             }
 
-            // FEATURE 4: EC2 AJAX ACTIONS
+            // FEATURE 5: EC2 AJAX ACTIONS
             function bindEc2ActionForms() {
                 const actionForms = document.querySelectorAll('.ec2-action-form');
                 actionForms.forEach(form => {
@@ -951,8 +1049,8 @@
 
                         const formData = new FormData(newForm);
                         const btn = newForm.querySelector('button');
-                        const originalText = btn.innerText;
-                        btn.innerText = '...';
+                        const originalHtml = btn.innerHTML;
+                        btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">sync</span>';
                         btn.disabled = true;
 
                         fetch(newForm.action, {
@@ -968,13 +1066,13 @@
                                     if (ec2RefreshBtn) ec2RefreshBtn.click();
                                 } else {
                                     alert('Action failed.');
-                                    btn.innerText = originalText;
+                                    btn.innerHTML = originalHtml;
                                     btn.disabled = false;
                                 }
                             })
                             .catch(() => {
                                 alert('Error processing action.');
-                                btn.innerText = originalText;
+                                btn.innerHTML = originalHtml;
                                 btn.disabled = false;
                             });
                     });
@@ -982,7 +1080,6 @@
             }
 
             bindEc2ActionForms();
-
         });
     </script>
 </x-app-layout>

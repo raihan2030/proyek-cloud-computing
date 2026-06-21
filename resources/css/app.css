@@ -1,3 +1,61 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-background text-on-surface font-sans;
+        background-color: #0F0F0F;
+    }
+    
+    /* Input and Select elements styling in dark theme */
+    input[type="text"], input[type="email"], input[type="password"], select, textarea {
+        @apply bg-surface-container-lowest border-outline-variant text-on-surface rounded focus:border-primary focus:ring-primary placeholder-on-surface-variant transition-colors;
+    }
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #141313;
+}
+::-webkit-scrollbar-thumb {
+    background: #353434;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #444748;
+}
+
+/* Material symbols custom utility */
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Custom Buttons & Cards */
+.btn-primary {
+    @apply bg-primary text-on-primary-fixed font-semibold transition-opacity duration-200;
+}
+.btn-primary:hover {
+    @apply opacity-90;
+}
+
+.btn-secondary {
+    @apply bg-transparent border border-outline-variant text-primary hover:bg-surface-container transition-colors duration-200;
+}
+
+.stat-card {
+    @apply bg-surface border border-outline-variant rounded-lg p-lg;
+}
+
+.nav-item-active {
+    @apply flex items-center gap-md px-md py-sm rounded-DEFAULT text-primary border-r-2 border-primary font-bold bg-surface-container transition-all duration-200;
+}
+
+.nav-item-inactive {
+    @apply flex items-center gap-md px-md py-sm rounded-DEFAULT text-on-surface-variant hover:bg-surface-container-highest hover:text-primary transition-all duration-200;
+}
+

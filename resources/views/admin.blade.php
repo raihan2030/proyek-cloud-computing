@@ -625,6 +625,7 @@
                 </main>
             </div>
         </div>
+        </div>
     </div>
 
     <!-- Toggle plan quota fields based on category -->

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,30 +7,139 @@
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <!-- Fonts & Icons -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet" />
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        
+        <script>
+            // Sync page's dark class
+            document.documentElement.classList.add('dark');
+        </script>
     </head>
-    <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100">
-            @include('layouts.navigation')
+    <body class="bg-[#0F0F0F] text-on-surface font-sans antialiased min-h-screen flex selection:bg-primary-container selection:text-on-primary-container">
+        @php
+            $currentTab = request()->query('tab', 'overview');
+            $isDashboard = request()->routeIs('dashboard');
+            $isAdmin = request()->is('admin');
+            $isProfile = request()->routeIs('profile.edit');
+        @endphp
 
-            <!-- Page Heading -->
-            @isset($header)
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <!-- SideNavBar -->
+        <aside class="bg-surface border-r border-outline-variant fixed left-0 top-0 h-full w-60 flex flex-col justify-between py-lg z-50 transition-colors duration-150">
+            <div class="px-md">
+                <!-- Header/Brand -->
+                <div class="mb-xl flex items-center px-sm gap-sm">
+                    <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">cloud</span>
+                    <div>
+                        <h1 class="font-bold text-lg text-primary leading-none">CloudOps</h1>
+                        <p class="font-mono text-[10px] text-on-surface-variant mt-1">Infrastructure v2.1</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="flex flex-col gap-base">
+                    <!-- Dashboard -->
+                    <a class="{{ ($isDashboard && $currentTab === 'overview') ? 'nav-item-active' : 'nav-item-inactive' }}" 
+                       href="{{ route('dashboard', ['tab' => 'overview']) }}">
+                        <span class="material-symbols-outlined text-xl">dashboard</span>
+                        <span>Dashboard</span>
+                    </a>
+
+                    <!-- Pengguna -->
+                    <a class="{{ $isAdmin ? 'nav-item-active' : 'nav-item-inactive' }}" 
+                       href="/admin">
+                        <span class="material-symbols-outlined text-xl">group</span>
+                        <span>Pengguna</span>
+                    </a>
+
+                    <!-- Paket Langganan -->
+                    <a class="{{ ($isDashboard && $currentTab === 'plans') ? 'nav-item-active' : 'nav-item-inactive' }}" 
+                       href="{{ route('dashboard', ['tab' => 'plans']) }}">
+                        <span class="material-symbols-outlined text-xl">payments</span>
+                        <span>Paket Langganan</span>
+                    </a>
+
+                    <!-- Resource Cloud -->
+                    <a class="{{ ($isDashboard && $currentTab === 'resources') ? 'nav-item-active' : 'nav-item-inactive' }}" 
+                       href="{{ route('dashboard', ['tab' => 'resources']) }}">
+                        <span class="material-symbols-outlined text-xl">cloud</span>
+                        <span>Resource Cloud</span>
+                    </a>
+
+                    <!-- Kredensial API -->
+                    <a class="{{ ($isDashboard && $currentTab === 'credentials') ? 'nav-item-active' : 'nav-item-inactive' }}" 
+                       href="{{ route('dashboard', ['tab' => 'credentials']) }}">
+                        <span class="material-symbols-outlined text-xl">key</span>
+                        <span>Kredensial API</span>
+                    </a>
+
+                    <!-- Log Aktivitas -->
+                    <a class="{{ ($isDashboard && $currentTab === 'logs') ? 'nav-item-active' : 'nav-item-inactive' }}" 
+                       href="{{ route('dashboard', ['tab' => 'logs']) }}">
+                        <span class="material-symbols-outlined text-xl">history</span>
+                        <span>Log Aktivitas</span>
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Footer Profile & Logout -->
+            <div class="px-md flex flex-col gap-2">
+                <a class="{{ $isProfile ? 'nav-item-active' : 'nav-item-inactive' }} border-t border-outline-variant pt-md" 
+                   href="{{ route('profile.edit') }}">
+                    <span class="material-symbols-outlined text-xl">account_circle</span>
+                    <span>Profile ({{ Auth::user()->name }})</span>
+                </a>
+                
+                <!-- Logout Form -->
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="w-full flex items-center gap-md px-md py-sm rounded-DEFAULT text-error hover:bg-error/10 hover:text-error transition-all duration-200 text-left font-semibold">
+                        <span class="material-symbols-outlined text-xl">logout</span>
+                        <span>Logout</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <!-- Main Content Wrapper -->
+        <div class="ml-60 flex-1 flex flex-col min-h-screen">
+            <!-- TopNavBar -->
+            <header class="bg-surface border-b border-outline-variant fixed top-0 right-0 w-[calc(100%-240px)] flex justify-between items-center h-16 px-lg z-40 transition-colors duration-150">
+                <div class="flex items-center text-on-surface-variant w-96">
+                    <span class="material-symbols-outlined text-xl mr-sm">search</span>
+                    <input class="bg-transparent border-none outline-none text-sm placeholder:text-outline focus:ring-0 w-full" placeholder="Search resources, files, or configs..." type="text"/>
+                </div>
+                <div class="flex items-center gap-md text-on-surface-variant">
+                    <button class="hover:bg-surface-container-highest rounded-lg p-sm transition-colors duration-150 flex items-center justify-center">
+                        <span class="material-symbols-outlined">notifications</span>
+                    </button>
+                    <div class="h-8 w-px bg-outline-variant"></div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center font-mono font-bold text-primary">
+                            {{ substr(Auth::user()->name, 0, 2) }}
+                        </div>
+                        <span class="text-sm font-semibold text-primary hidden md:inline">{{ Auth::user()->name }}</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Canvas -->
+            <main class="flex-1 mt-16 p-margin-desktop space-y-xl">
+                <!-- Page Heading (rendered in content slot or template header) -->
+                @isset($header)
+                    <div class="border-b border-outline-variant pb-md">
                         {{ $header }}
                     </div>
-                </header>
-            @endisset
-
-            <!-- Page Content -->
-            <main>
+                @endisset
+                
                 {{ $slot }}
             </main>
         </div>
     </body>
 </html>
+
