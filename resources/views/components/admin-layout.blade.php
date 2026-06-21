@@ -30,7 +30,7 @@
                     <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">shield_person</span>
                     <div>
                         <h1 class="font-bold text-lg text-primary leading-none">Admin Panel</h1>
-                        <p class="font-mono text-[10px] text-on-surface-variant mt-1">CloudOps System</p>
+                        <p class="font-mono text-[10px] text-on-surface-variant mt-1">Vortex Cloud System</p>
                     </div>
                 </div>
 

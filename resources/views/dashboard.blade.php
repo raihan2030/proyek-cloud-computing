@@ -85,7 +85,7 @@
             <div class="stat-card">
                 <p class="font-mono text-xs text-on-surface-variant uppercase tracking-widest mb-sm">Monthly Spend</p>
                 <div class="flex items-baseline gap-sm">
-                    <h3 class="text-3xl font-bold text-primary">${{ number_format($monthlyBill, 2) }}</h3>
+                    <h3 class="text-3xl font-bold text-primary">Rp {{ number_format($monthlyBill, 2, ',', '.') }}</h3>
                     <span class="font-mono text-xs text-on-surface-variant">run rate</span>
                 </div>
             </div>
@@ -616,7 +616,7 @@
                                 <p class="text-xs text-on-surface-variant mt-1">Dedicated instance with high availability SLA.</p>
                             </div>
                             <div class="flex items-baseline gap-1 border-b border-outline-variant pb-md mb-md">
-                                <span class="text-3xl font-bold text-primary">${{ number_format($plan->monthly_price) }}</span>
+                                <span class="text-3xl font-bold text-primary">Rp {{ number_format($plan->monthly_price, 2, ',', '.') }}</span>
                                 <span class="font-mono text-xs text-on-surface-variant">/mo</span>
                             </div>
                             <div class="flex-1 flex flex-col gap-sm mb-lg">
@@ -659,7 +659,7 @@
                                 <p class="text-xs text-on-surface-variant mt-1">Multi-region redundancy object storage bucket.</p>
                             </div>
                             <div class="flex items-baseline gap-1 border-b border-outline-variant pb-md mb-md">
-                                <span class="text-3xl font-bold text-primary">${{ number_format($plan->monthly_price) }}</span>
+                                <span class="text-3xl font-bold text-primary">Rp {{ number_format($plan->monthly_price, 2, ',', '.') }}</span>
                                 <span class="font-mono text-xs text-on-surface-variant">/mo</span>
                             </div>
                             <div class="flex-1 flex flex-col gap-sm mb-lg">
