@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ config('app.name', 'Laravel') }} - Admin Panel</title>
 
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,66 +15,67 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         
         <script>
-            // Sync page's dark class
             document.documentElement.classList.add('dark');
         </script>
     </head>
     <body class="bg-[#0F0F0F] text-on-surface font-sans antialiased min-h-screen flex selection:bg-primary-container selection:text-on-primary-container">
         @php
             $currentTab = request()->query('tab', 'overview');
-            $isDashboard = request()->routeIs('dashboard');
-            // $isAdmin = request()->is('admin'); <-- (Opsional: baris ini bisa dihapus karena sudah tidak dipakai untuk menandai tab aktif di dashboard)
             $isProfile = request()->routeIs('profile.edit');
         @endphp
 
         <aside class="bg-surface border-r border-outline-variant fixed left-0 top-0 h-full w-60 flex flex-col justify-between py-lg z-50 transition-colors duration-150">
             <div class="px-md">
                 <div class="mb-xl flex items-center px-sm gap-sm">
-                    <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">cloud</span>
+                    <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">shield_person</span>
                     <div>
-                        <h1 class="font-bold text-lg text-primary leading-none">CloudOps</h1>
-                        <p class="font-mono text-[10px] text-on-surface-variant mt-1">Infrastructure v2.1</p>
+                        <h1 class="font-bold text-lg text-primary leading-none">Admin Panel</h1>
+                        <p class="font-mono text-[10px] text-on-surface-variant mt-1">CloudOps System</p>
                     </div>
                 </div>
 
                 <nav class="flex flex-col gap-base">
-                    <a class="{{ ($isDashboard && $currentTab === 'overview') ? 'nav-item-active' : 'nav-item-inactive' }}" 
-                       href="{{ route('dashboard', ['tab' => 'overview']) }}">
+                    <a class="{{ $currentTab === 'overview' ? 'nav-item-active' : 'nav-item-inactive' }}" 
+                       href="{{ route('admin.index', ['tab' => 'overview']) }}">
                         <span class="material-symbols-outlined text-xl">dashboard</span>
-                        <span>Dashboard</span>
+                        <span>Ringkasan</span>
                     </a>
 
-                    <a class="{{ ($isDashboard && $currentTab === 'plans') ? 'nav-item-active' : 'nav-item-inactive' }}" 
-                       href="{{ route('dashboard', ['tab' => 'plans']) }}">
-                        <span class="material-symbols-outlined text-xl">payments</span>
+                    <a class="{{ $currentTab === 'users' ? 'nav-item-active' : 'nav-item-inactive' }}" 
+                       href="{{ route('admin.users', ['tab' => 'users']) }}">
+                        <span class="material-symbols-outlined text-xl">manage_accounts</span>
+                        <span>Kelola Pengguna</span>
+                    </a>
+
+                    <a class="{{ $currentTab === 'plans' ? 'nav-item-active' : 'nav-item-inactive' }}" 
+                       href="{{ route('admin.plans', ['tab' => 'plans']) }}">
+                        <span class="material-symbols-outlined text-xl">inventory_2</span>
                         <span>Paket Langganan</span>
                     </a>
 
-                    <a class="{{ ($isDashboard && $currentTab === 'resources') ? 'nav-item-active' : 'nav-item-inactive' }}" 
-                       href="{{ route('dashboard', ['tab' => 'resources']) }}">
-                        <span class="material-symbols-outlined text-xl">cloud</span>
-                        <span>Resource Cloud</span>
+                    <a class="{{ $currentTab === 'resources' ? 'nav-item-active' : 'nav-item-inactive' }}" 
+                       href="{{ route('admin.resources', ['tab' => 'resources']) }}">
+                        <span class="material-symbols-outlined text-xl">dns</span>
+                        <span>Sumber Daya Aktif</span>
                     </a>
 
-                    <a class="{{ ($isDashboard && $currentTab === 'credentials') ? 'nav-item-active' : 'nav-item-inactive' }}" 
-                       href="{{ route('dashboard', ['tab' => 'credentials']) }}">
-                        <span class="material-symbols-outlined text-xl">key</span>
-                        <span>Kredensial API</span>
+                    <a class="{{ $currentTab === 'payments' ? 'nav-item-active' : 'nav-item-inactive' }}" 
+                       href="{{ route('admin.payments', ['tab' => 'payments']) }}">
+                        <span class="material-symbols-outlined text-xl">payments</span>
+                        <span>Transaksi</span>
                     </a>
 
-                    <a class="{{ ($isDashboard && $currentTab === 'logs') ? 'nav-item-active' : 'nav-item-inactive' }}" 
-                       href="{{ route('dashboard', ['tab' => 'logs']) }}">
+                    <a class="{{ $currentTab === 'logs' ? 'nav-item-active' : 'nav-item-inactive' }}" 
+                       href="{{ route('admin.logs', ['tab' => 'logs']) }}">
                         <span class="material-symbols-outlined text-xl">history</span>
                         <span>Log Aktivitas</span>
                     </a>
 
-                    @if (Auth::user()->role === 'admin')
-                        <div class="h-px bg-outline-variant my-2"></div>
-                        <a class="nav-item-inactive hover:text-primary transition-colors" 
-                           href="{{ route('admin.index') }}"> <span class="material-symbols-outlined text-xl">shield_person</span>
-                            <span>Mode Admin</span>
-                        </a>
-                    @endif
+                    <div class="h-px bg-outline-variant my-2"></div>
+                    <a class="nav-item-inactive hover:text-primary" href="{{ route('dashboard') }}">
+                        <span class="material-symbols-outlined text-xl">exit_to_app</span>
+                        <span>Mode User</span>
+                    </a>
                 </nav>
             </div>
 
@@ -82,7 +83,7 @@
                 <a class="{{ $isProfile ? 'nav-item-active' : 'nav-item-inactive' }} border-t border-outline-variant pt-md" 
                    href="{{ route('profile.edit') }}">
                     <span class="material-symbols-outlined text-xl">account_circle</span>
-                    <span class="truncate">Profile ({{ Auth::user()->name }})</span>
+                    <span class="truncate">Admin ({{ Auth::user()->name }})</span>
                 </a>
                 
                 <form method="POST" action="{{ route('logout') }}">
@@ -95,11 +96,11 @@
             </div>
         </aside>
 
-        <div class="ml-60 flex-1 flex flex-col min-h-screen">
+        <div class="ml-60 flex-1 flex flex-col min-h-screen w-full overflow-hidden">
             <header class="bg-surface border-b border-outline-variant fixed top-0 right-0 w-[calc(100%-240px)] flex justify-between items-center h-16 px-lg z-40 transition-colors duration-150">
                 <div class="flex items-center text-on-surface-variant w-96">
                     <span class="material-symbols-outlined text-xl mr-sm">search</span>
-                    <input class="bg-transparent border-none outline-none text-sm placeholder:text-outline focus:ring-0 w-full" placeholder="Search resources, files, or configs..." type="text"/>
+                    <input class="bg-transparent border-none outline-none text-sm placeholder:text-outline focus:ring-0 w-full" placeholder="Cari data admin..." type="text"/>
                 </div>
                 <div class="flex items-center gap-md text-on-surface-variant">
                     <button class="hover:bg-surface-container-highest rounded-lg p-sm transition-colors duration-150 flex items-center justify-center">
@@ -107,7 +108,7 @@
                     </button>
                     <div class="h-8 w-px bg-outline-variant"></div>
                     <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center font-mono font-bold text-primary">
+                        <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center font-mono font-bold text-primary border border-primary/30">
                             {{ substr(Auth::user()->name, 0, 2) }}
                         </div>
                         <span class="text-sm font-semibold text-primary hidden md:inline">{{ Auth::user()->name }}</span>
@@ -115,9 +116,9 @@
                 </div>
             </header>
 
-            <main class="flex-1 mt-16 p-margin-desktop space-y-xl">
+            <main class="flex-1 mt-16 p-margin-desktop space-y-xl w-full">
                 @isset($header)
-                    <div class="border-b border-outline-variant pb-md">
+                    <div class="border-b border-outline-variant pb-md flex justify-between items-end">
                         {{ $header }}
                     </div>
                 @endisset

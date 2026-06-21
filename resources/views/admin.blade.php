@@ -1,669 +1,320 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+<x-admin-layout>
+    @php
+        $tab = request()->query('tab', $tab ?? 'overview');
+    @endphp
 
-    <title>{{ config('app.name', 'Laravel') }} - Admin Panel</title>
-
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="font-sans antialiased bg-slate-50 text-slate-900">
-    
-    <nav class="bg-slate-900 border-b border-slate-800 text-white px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center shadow-sm sticky top-0 z-50">
-        <div class="flex items-center space-x-4">
-            <a href="{{ route('admin.index') }}" class="font-bold text-xl tracking-wider text-white flex items-center gap-2">
-                <svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                ADMIN<span class="text-indigo-400">PANEL</span>
-            </a>
+    <x-slot name="header">
+        <div>
+            <h2 class="font-bold text-2xl text-primary tracking-tight">
+                @if ($tab === 'overview') Overview Admin
+                @elseif ($tab === 'users') Kelola Pengguna
+                @elseif ($tab === 'plans') Manajemen Paket Langganan
+                @elseif ($tab === 'resources') Pemantauan Sumber Daya Aktif
+                @elseif ($tab === 'payments') Transaksi & Tagihan
+                @elseif ($tab === 'logs') Log Aktivitas Sistem
+                @endif
+            </h2>
+            <p class="text-sm text-on-surface-variant mt-1">
+                @if ($tab === 'overview') Ringkasan statistik sistem, pendapatan, dan alokasi resource.
+                @elseif ($tab === 'users') Manajemen akun pengguna, saldo virtual, dan peran akses.
+                @elseif ($tab === 'plans') Konfigurasi kuota dan harga paket IaaS yang ditawarkan ke pengguna.
+                @elseif ($tab === 'resources') Pemantauan seluruh instance EC2 dan S3 yang sedang disewa pengguna.
+                @elseif ($tab === 'payments') Verifikasi pembayaran, status tagihan, dan riwayat transaksi.
+                @elseif ($tab === 'logs') Audit trail lengkap dari semua operasi yang terjadi di sistem.
+                @endif
+            </p>
         </div>
-        <div class="flex items-center space-x-5">
-            <span class="text-sm text-slate-300 hidden md:inline-block">Halo, <strong>{{ Auth::user()->name }}</strong></span>
-            
-            <a href="{{ route('dashboard') }}" class="text-sm text-indigo-400 hover:text-indigo-300 transition">Ke Dasbor User</a>
-            
-            <form method="POST" action="{{ route('logout') }}" class="inline m-0 p-0">
-                @csrf
-                <button type="submit" class="text-sm bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 rounded-lg transition font-medium shadow-sm">
-                    Log Out
+        
+        @if ($tab === 'plans')
+            <div class="flex items-center gap-sm shrink-0 mb-1">
+                <button onclick="document.getElementById('add-plan-panel').scrollIntoView({ behavior: 'smooth' });" class="bg-primary hover:bg-primary/90 text-on-primary-fixed px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded flex items-center gap-2 transition">
+                    <span class="material-symbols-outlined text-sm">add</span> Tambah Paket Baru
                 </button>
-            </form>
+            </div>
+        @endif
+    </x-slot>
+
+    {{-- Alert Messages --}}
+    @if(session('success'))
+        <div class="p-4 bg-primary/20 text-primary border border-primary/30 rounded flex items-center gap-md font-semibold">
+            <span class="material-symbols-outlined">check_circle</span>
+            <span>{{ session('success') }}</span>
         </div>
-    </nav>
+    @endif
+    @if(session('error'))
+        <div class="p-4 bg-error/15 text-error border border-error/30 rounded flex items-center gap-md font-semibold">
+            <span class="material-symbols-outlined">error</span>
+            <span>{{ session('error') }}</span>
+        </div>
+    @endif
 
-    <div class="py-10 min-h-screen">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            
-            @if(session('success'))
-                <div x-data="{ show: true }" x-show="show" x-transition
-                     class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-r-lg shadow-sm flex items-center justify-between">
-                    <div class="flex items-center">
-                        <svg class="w-5 h-5 text-emerald-600 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span class="text-sm font-medium text-emerald-800">{{ session('success') }}</span>
-                    </div>
-                    <button @click="show = false" class="text-emerald-500 hover:text-emerald-700 ml-4 shrink-0 transition focus:outline-none" title="Tutup">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-            @endif
-
-            @if(session('error'))
-                <div x-data="{ show: true }" x-show="show" x-transition
-                     class="mb-6 p-4 bg-rose-50 border-l-4 border-rose-500 rounded-r-lg shadow-sm flex items-center justify-between">
-                    <div class="flex items-center">
-                        <svg class="w-5 h-5 text-rose-600 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span class="text-sm font-medium text-rose-800">{{ session('error') }}</span>
-                    </div>
-                    <button @click="show = false" class="text-rose-500 hover:text-rose-700 ml-4 shrink-0 transition focus:outline-none" title="Tutup">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-            @endif
-
-            <div class="flex flex-col lg:flex-row gap-8">
-                <aside class="w-full lg:w-64 shrink-0">
-                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden p-4 space-y-1">
-                        <div class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                            Menu Navigasi
-                        </div>
-                        
-                        <a href="{{ route('admin.index') }}" 
-                           class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all {{ $tab === 'overview' ? 'bg-gray-800 text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
-                            </svg>
-                            <span>Ringkasan</span>
-                        </a>
-
-                        <a href="{{ route('admin.users') }}" 
-                           class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all {{ $tab === 'users' ? 'bg-gray-800 text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
-                            <span>Kelola Pengguna</span>
-                        </a>
-
-                        <a href="{{ route('admin.plans') }}" 
-                           class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all {{ $tab === 'plans' ? 'bg-gray-800 text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                            </svg>
-                            <span>Paket Langganan</span>
-                        </a>
-
-                        <a href="{{ route('admin.resources') }}" 
-                           class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all {{ $tab === 'resources' ? 'bg-gray-800 text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
-                            </svg>
-                            <span>Sumber Daya Aktif</span>
-                        </a>
-
-                        <a href="{{ route('admin.payments') }}" 
-                           class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all {{ $tab === 'payments' ? 'bg-gray-800 text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <span>Transaksi & Tagihan</span>
-                        </a>
-
-                        <a href="{{ route('admin.logs') }}" 
-                           class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all {{ $tab === 'logs' ? 'bg-gray-800 text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span>Log Aktivitas</span>
-                        </a>
-                    </div>
-                </aside>
-
-                <main class="flex-1">
-                    
-                    @if($tab === 'overview')
-                        <div class="space-y-8">
-                            <div class="flex items-center justify-between">
-                                <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Overview Dashboard</h2>
-                                <span class="text-sm font-medium text-slate-500">{{ now()->isoFormat('D MMMM YYYY') }}</span>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center space-x-5 hover:shadow-md transition">
-                                    <div class="p-4 bg-indigo-50 text-indigo-600 rounded-xl">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Total Pengguna</p>
-                                        <h3 class="text-3xl font-extrabold text-slate-800 mt-1">{{ $stats['total_users'] }}</h3>
-                                    </div>
-                                </div>
-
-                                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center space-x-5 hover:shadow-md transition">
-                                    <div class="p-4 bg-sky-50 text-sky-600 rounded-xl">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-semibold text-slate-400 uppercase tracking-wider">EC2 Compute Aktif</p>
-                                        <h3 class="text-3xl font-extrabold text-slate-800 mt-1">{{ $stats['running_instances'] }}</h3>
-                                    </div>
-                                </div>
-
-                                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center space-x-5 hover:shadow-md transition">
-                                    <div class="p-4 bg-emerald-50 text-emerald-600 rounded-xl">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-semibold text-slate-400 uppercase tracking-wider">S3 Storage Aktif</p>
-                                        <h3 class="text-3xl font-extrabold text-slate-800 mt-1">{{ $stats['active_buckets'] }}</h3>
-                                    </div>
-                                </div>
-
-                                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center space-x-5 hover:shadow-md transition">
-                                    <div class="p-4 bg-teal-50 text-teal-600 rounded-xl">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Pendapatan Diterima</p>
-                                        <h3 class="text-2xl font-extrabold text-emerald-600 mt-1">Rp {{ number_format($stats['total_revenue'], 2, ',', '.') }}</h3>
-                                    </div>
-                                </div>
-
-                                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center space-x-5 hover:shadow-md transition">
-                                    <div class="p-4 bg-amber-50 text-amber-600 rounded-xl">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Tagihan Tertunda (Pending)</p>
-                                        <h3 class="text-2xl font-extrabold text-amber-600 mt-1">Rp {{ number_format($stats['pending_payments'], 2, ',', '.') }}</h3>
-                                    </div>
-                                </div>
-
-                                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center space-x-5 hover:shadow-md transition">
-                                    <div class="p-4 bg-fuchsia-50 text-fuchsia-600 rounded-xl">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Total Saldo Pengguna</p>
-                                        <h3 class="text-2xl font-extrabold text-fuchsia-600 mt-1">Rp {{ number_format($stats['total_balance'], 2, ',', '.') }}</h3>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                                <h3 class="text-lg font-bold text-slate-800 mb-6">Log Aktivitas Terbaru</h3>
-                                <div class="space-y-4">
-                                    @forelse($recentLogs as $log)
-                                        <div class="flex items-start justify-between p-3 rounded-xl hover:bg-slate-50 transition">
-                                            <div class="flex items-start space-x-4">
-                                                <div class="p-2 rounded-lg shrink-0 mt-0.5
-                                                    @if($log->action_type === 'create') bg-emerald-50 text-emerald-600
-                                                    @elseif($log->action_type === 'delete') bg-rose-50 text-rose-600
-                                                    @else bg-blue-50 text-blue-600 @endif">
-                                                    <span class="text-xs font-bold uppercase">{{ $log->action_type }}</span>
-                                                </div>
-                                                <div>
-                                                    <p class="text-sm font-semibold text-slate-800">{{ $log->description }}</p>
-                                                    <p class="text-xs text-slate-400 mt-1">
-                                                        Oleh: <span class="font-medium text-slate-600">{{ $log->user_name ?? 'System/Deleted User' }}</span>
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <span class="text-xs text-slate-400">{{ \Carbon\Carbon::parse($log->created_at)->diffForHumans() }}</span>
-                                        </div>
-                                    @empty
-                                        <div class="text-center py-6 text-slate-400 italic text-sm">Tidak ada log aktivitas saat ini.</div>
-                                    @endforelse
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-
-                    @if($tab === 'users')
-                        <div class="space-y-6">
-                            <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Kelola Pengguna</h2>
-
-                            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                                <table class="min-w-full divide-y divide-slate-100 text-left">
-                                    <thead class="bg-slate-50">
-                                        <tr>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Nama</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Email</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Role</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Saldo Virtual</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-100">
-                                        @foreach($users as $user)
-                                            <tr class="hover:bg-slate-50/50 transition">
-                                                <td class="px-6 py-4">
-                                                    <span class="text-sm font-semibold text-slate-800">{{ $user->name }}</span>
-                                                </td>
-                                                <td class="px-6 py-4">
-                                                    <span class="text-sm text-slate-600">{{ $user->email }}</span>
-                                                </td>
-                                                <td class="px-6 py-4">
-                                                    <span class="inline-flex px-2.5 py-1 text-xs font-bold rounded-full 
-                                                        {{ $user->role === 'admin' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-slate-50 text-slate-600 border border-slate-100' }}">
-                                                        {{ strtoupper($user->role) }}
-                                                    </span>
-                                                </td>
-                                                <td class="px-6 py-4 text-right">
-                                                    <span class="text-sm font-bold text-slate-800">Rp {{ number_format($user->virtual_balance, 2, ',', '.') }}</span>
-                                                </td>
-                                                <td class="px-6 py-4">
-                                                    <div class="flex items-center justify-center space-x-3">
-                                                        <form action="{{ route('admin.users.balance', $user->id) }}" method="POST" class="flex items-center space-x-1">
-                                                            @csrf
-                                                            <input type="number" name="amount" placeholder="+/- Jumlah" step="0.01"
-                                                                   class="w-24 px-2 py-1 text-xs border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none" required>
-                                                            <button type="submit" class="bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold px-2 py-1.5 rounded-lg transition" title="Adjust Balance">
-                                                                Sesuaikan
-                                                            </button>
-                                                        </form>
-
-                                                        @if(Auth::id() != $user->id)
-                                                            <form action="{{ route('admin.users.role', $user->id) }}" method="POST" class="inline">
-                                                                @csrf
-                                                                <input type="hidden" name="role" value="{{ $user->role === 'admin' ? 'user' : 'admin' }}">
-                                                                <button type="submit" class="text-xs font-semibold text-slate-500 hover:text-indigo-600 transition px-2 py-1.5 bg-slate-50 hover:bg-indigo-50 rounded-lg">
-                                                                    Jadikan {{ $user->role === 'admin' ? 'User' : 'Admin' }}
-                                                                </button>
-                                                            </form>
-
-                                                            <form action="{{ route('admin.users.delete', $user->id) }}" method="POST" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pengguna ini? Semua data terkait juga akan terhapus.');">
-                                                                @csrf
-                                                                @method('DELETE')
-                                                                <button type="submit" class="text-xs font-semibold text-rose-500 hover:text-rose-700 transition px-2 py-1.5 bg-slate-50 hover:bg-rose-50 rounded-lg">
-                                                                    Hapus
-                                                                </button>
-                                                            </form>
-                                                        @endif
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    @endif
-
-                    @if($tab === 'plans')
-                        <div class="space-y-8">
-                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Manajemen Paket Langganan</h2>
-                                <button onclick="document.getElementById('add-plan-panel').scrollIntoView({ behavior: 'smooth' });"
-                                        class="bg-gray-800 hover:bg-gray-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm hover:shadow transition self-start md:self-auto">
-                                    + Tambah Paket Baru
-                                </button>
-                            </div>
-
-                            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                                <table class="min-w-full divide-y divide-slate-100 text-left">
-                                    <thead class="bg-slate-50">
-                                        <tr>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Paket</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori / Layanan</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Kuota Detail</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Harga Bulanan</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Status</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-100">
-                                        @foreach($plans as $plan)
-                                            <tr class="hover:bg-slate-50/50 transition">
-                                                <td class="px-6 py-4">
-                                                    <span class="text-sm font-bold text-slate-800 block">{{ $plan->plan_name }}</span>
-                                                    <span class="text-xs text-slate-400 mt-0.5 block line-clamp-1 max-w-xs">{{ $plan->description }}</span>
-                                                </td>
-                                                <td class="px-6 py-4">
-                                                    <span class="text-xs font-bold text-slate-700 block">{{ $plan->service_name }}</span>
-                                                    <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mt-0.5">{{ $plan->service_category }}</span>
-                                                </td>
-                                                <td class="px-6 py-4 text-xs text-slate-600 space-y-0.5">
-                                                    @if($plan->storage_quota_gb > 0)
-                                                        <div>Penyimpanan: <strong>{{ $plan->storage_quota_gb }} GB</strong></div>
-                                                    @endif
-                                                    @if($plan->compute_quota_vcpu > 0)
-                                                        <div>Compute: <strong>{{ $plan->compute_quota_vcpu }} vCPU</strong></div>
-                                                    @endif
-                                                    @if($plan->network_quota_vpc > 0)
-                                                        <div>Jaringan: <strong>{{ $plan->network_quota_vpc }} VPC</strong></div>
-                                                    @endif
-                                                    @if($plan->storage_quota_gb == 0 && $plan->compute_quota_vcpu == 0 && $plan->network_quota_vpc == 0)
-                                                        <span class="text-slate-400 italic">No custom quotas</span>
-                                                    @endif
-                                                </td>
-                                                <td class="px-6 py-4 text-right">
-                                                    <span class="text-sm font-bold text-slate-800">Rp {{ number_format($plan->monthly_price, 2, ',', '.') }}</span>
-                                                </td>
-                                                <td class="px-6 py-4 text-center">
-                                                    <span class="inline-flex px-2.5 py-1 text-xs font-bold rounded-full 
-                                                        {{ $plan->is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-500 border border-slate-200' }}">
-                                                        {{ $plan->is_active ? 'AKTIF' : 'NON-AKTIF' }}
-                                                    </span>
-                                                </td>
-                                                <td class="px-6 py-4">
-                                                    <div class="flex items-center justify-center space-x-2">
-                                                        <form action="{{ route('admin.plans.toggle', $plan->id) }}" method="POST" class="inline">
-                                                            @csrf
-                                                            <button type="submit" class="text-xs font-semibold px-2 py-1.5 rounded-lg border transition {{ $plan->is_active ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' }}">
-                                                                {{ $plan->is_active ? 'Matikan' : 'Aktifkan' }}
-                                                            </button>
-                                                        </form>
-
-                                                        <form action="{{ route('admin.plans.delete', $plan->id) }}" method="POST" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus paket langganan ini?');">
-                                                            @csrf
-                                                            @method('DELETE')
-                                                            <button type="submit" class="text-xs font-semibold px-2 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition">
-                                                                Hapus
-                                                            </button>
-                                                        </form>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div id="add-plan-panel" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 scroll-mt-6">
-                                <h3 class="text-lg font-bold text-slate-800 mb-6">Tambah Paket Langganan Baru</h3>
-                                <form action="{{ route('admin.plans.create') }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    @csrf
-
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nama Layanan IaaS</label>
-                                        <select id="service-select" name="service_id" class="w-full border-slate-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none" required>
-                                            <option value="" disabled selected>-- Pilih Layanan --</option>
-                                            @foreach($services as $svc)
-                                                <option value="{{ $svc->id }}" data-category="{{ $svc->service_category }}">{{ $svc->service_name }} ({{ $svc->service_category }})</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nama Paket</label>
-                                        <input type="text" name="plan_name" placeholder="Contoh: Premium Storage 200GB" class="w-full border-slate-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none" required>
-                                    </div>
-
-                                    <div id="storage-quota-container" style="display: none;">
-                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Kapasitas Penyimpanan (GB)</label>
-                                        <input type="number" id="storage_quota_input" name="storage_quota_gb" placeholder="0" min="0" class="w-full border-slate-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none">
-                                    </div>
-
-                                    <div id="compute-quota-container" style="display: none;">
-                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Compute Quota (vCPU)</label>
-                                        <input type="number" id="compute_quota_input" name="compute_quota_vcpu" placeholder="0" min="0" class="w-full border-slate-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none">
-                                    </div>
-
-                                    <input type="hidden" name="network_quota_vpc" value="0">
-
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Harga Bulanan (Rp)</label>
-                                        <input type="number" name="monthly_price" placeholder="0" min="0" step="0.01" class="w-full border-slate-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none" required>
-                                    </div>
-
-                                    <div class="md:col-span-2">
-                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Deskripsi Paket</label>
-                                        <textarea name="description" rows="3" placeholder="Tuliskan deskripsi paket, batas pemakaian, dll..." class="w-full border-slate-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none"></textarea>
-                                    </div>
-
-                                    <div class="md:col-span-2">
-                                        <button type="submit" class="w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 rounded-xl shadow-sm hover:shadow transition">
-                                            Simpan Paket Baru
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    @endif
-
-                    @if($tab === 'resources')
-                        <div class="space-y-6">
-                            <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Sumber Daya Aktif</h2>
-
-                            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                                <table class="min-w-full divide-y divide-slate-100 text-left">
-                                    <thead class="bg-slate-50">
-                                        <tr>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Penyewa (User)</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Jenis & Nama Layanan</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Resource ID</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Biaya per Jam</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Status</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Mulai Sewa</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-100">
-                                        @foreach($resources as $res)
-                                            <tr class="hover:bg-slate-50/50 transition">
-                                                <td class="px-6 py-4">
-                                                    <span class="text-sm font-semibold text-slate-800">{{ $res->user_name }}</span>
-                                                </td>
-                                                <td class="px-6 py-4">
-                                                    <span class="text-sm font-bold text-slate-800 block">{{ $res->instance_name }}</span>
-                                                    <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mt-0.5">{{ $res->resource_type }} ({{ $res->plan_name }})</span>
-                                                </td>
-                                                <td class="px-6 py-4">
-                                                    <code class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600 block w-full truncate max-w-[150px]">{{ $res->ministack_resource_id }}</code>
-                                                </td>
-                                                <td class="px-6 py-4 text-right">
-                                                    <span class="text-sm font-semibold text-slate-700 block">Rp {{ number_format($res->hourly_cost, 2, ',', '.') }}/jam</span>
-                                                </td>
-                                                <td class="px-6 py-4 text-center">
-                                                    <span class="inline-flex px-2.5 py-1 text-xs font-bold rounded-full 
-                                                        @if($res->status === 'running') bg-emerald-50 text-emerald-700 border border-emerald-100
-                                                        @elseif($res->status === 'stopped') bg-amber-50 text-amber-700 border border-amber-100
-                                                        @else bg-rose-50 text-rose-700 border border-rose-100 @endif">
-                                                        {{ strtoupper($res->status) }}
-                                                    </span>
-                                                </td>
-                                                <td class="px-6 py-4 text-right">
-                                                    <span class="text-xs text-slate-600 block">{{ \Carbon\Carbon::parse($res->rent_start_date)->isoFormat('D MMM YYYY, HH:mm') }}</span>
-                                                    <span class="text-[10px] text-slate-400 block mt-0.5">{{ \Carbon\Carbon::parse($res->rent_start_date)->diffForHumans() }}</span>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    @endif
-
-                    @if($tab === 'payments')
-                        <div class="space-y-6">
-                            <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Transaksi & Tagihan</h2>
-
-                            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                                <table class="min-w-full divide-y divide-slate-100 text-left">
-                                    <thead class="bg-slate-50">
-                                        <tr>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">No. Invoice</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Pelanggan (User)</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Layanan</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Jumlah Tagihan</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Status</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Aksi Konfirmasi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-100">
-                                        @foreach($payments as $pay)
-                                            <tr class="hover:bg-slate-50/50 transition">
-                                                <td class="px-6 py-4">
-                                                    <span class="text-sm font-bold text-indigo-600 block">{{ $pay->invoice_number }}</span>
-                                                    <span class="text-[10px] text-slate-400 mt-0.5 block">{{ \Carbon\Carbon::parse($pay->billing_date)->isoFormat('D MMM YYYY') }}</span>
-                                                </td>
-                                                <td class="px-6 py-4">
-                                                    <span class="text-sm font-semibold text-slate-800 block">{{ $pay->user_name }}</span>
-                                                </td>
-                                                <td class="px-6 py-4">
-                                                    <span class="text-xs text-slate-700 block">{{ $pay->instance_name ?? 'Resource/Deleted' }}</span>
-                                                    <span class="text-[10px] text-slate-400 mt-0.5 block">Method: {{ $pay->payment_method ?? 'Saldo Virtual' }}</span>
-                                                </td>
-                                                <td class="px-6 py-4 text-right">
-                                                    <span class="text-sm font-extrabold text-slate-800">Rp {{ number_format($pay->billing_amount, 2, ',', '.') }}</span>
-                                                </td>
-                                                <td class="px-6 py-4 text-center">
-                                                    <span class="inline-flex px-2.5 py-1 text-xs font-bold rounded-full 
-                                                        @if($pay->status === 'paid') bg-emerald-50 text-emerald-700 border border-emerald-100
-                                                        @elseif($pay->status === 'pending') bg-amber-50 text-amber-700 border border-amber-100
-                                                        @else bg-rose-50 text-rose-700 border border-rose-100 @endif">
-                                                        {{ strtoupper($pay->status) }}
-                                                    </span>
-                                                </td>
-                                                <td class="px-6 py-4">
-                                                    <div class="flex items-center justify-center space-x-1.5">
-                                                        @if($pay->status !== 'paid')
-                                                            <form action="{{ route('admin.payments.status', $pay->id) }}" method="POST" class="inline">
-                                                                @csrf
-                                                                <input type="hidden" name="status" value="paid">
-                                                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-2 py-1.5 rounded-lg shadow-sm hover:shadow transition">
-                                                                    Tandai Lunas
-                                                                </button>
-                                                            </form>
-                                                        @endif
-
-                                                        @if($pay->status !== 'failed')
-                                                            <form action="{{ route('admin.payments.status', $pay->id) }}" method="POST" class="inline">
-                                                                @csrf
-                                                                <input type="hidden" name="status" value="failed">
-                                                                <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold px-2 py-1.5 rounded-lg border border-rose-200 transition">
-                                                                    Gagal
-                                                                </button>
-                                                            </form>
-                                                        @endif
-
-                                                        @if($pay->status === 'paid' || $pay->status === 'failed')
-                                                            <form action="{{ route('admin.payments.status', $pay->id) }}" method="POST" class="inline">
-                                                                @csrf
-                                                                <input type="hidden" name="status" value="pending">
-                                                                <button type="submit" class="bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-semibold px-2 py-1.5 rounded-lg border border-slate-200 transition">
-                                                                    Set Pending
-                                                                </button>
-                                                            </form>
-                                                        @endif
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    @endif
-
-                    @if($tab === 'logs')
-                        <div class="space-y-6">
-                            <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Log Aktivitas Sistem</h2>
-
-                            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                                <table class="min-w-full divide-y divide-slate-100 text-left">
-                                    <thead class="bg-slate-50">
-                                        <tr>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider w-32">Tipe Aksi</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider w-40">Pelaku (User)</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Deskripsi Aktivitas</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right w-48">Waktu Kejadian</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-100">
-                                        @foreach($logs as $log)
-                                            <tr class="hover:bg-slate-50/50 transition">
-                                                <td class="px-6 py-4">
-                                                    <span class="inline-flex px-2.5 py-1 text-xs font-bold rounded-full
-                                                        @if($log->action_type === 'create') bg-emerald-50 text-emerald-700 border border-emerald-100
-                                                        @elseif($log->action_type === 'delete') bg-rose-50 text-rose-700 border border-rose-100
-                                                        @else bg-blue-50 text-blue-700 border border-blue-100 @endif">
-                                                        {{ strtoupper($log->action_type) }}
-                                                    </span>
-                                                </td>
-                                                <td class="px-6 py-4">
-                                                    <span class="text-sm font-semibold text-slate-800">{{ $log->user_name ?? 'System/Deleted' }}</span>
-                                                </td>
-                                                <td class="px-6 py-4">
-                                                    <span class="text-sm text-slate-600">{{ $log->description }}</span>
-                                                </td>
-                                                <td class="px-6 py-4 text-right">
-                                                    <span class="text-xs text-slate-600 block">{{ \Carbon\Carbon::parse($log->created_at)->isoFormat('D MMMM YYYY, HH:mm:ss') }}</span>
-                                                    <span class="text-[10px] text-slate-400 block mt-0.5">{{ \Carbon\Carbon::parse($log->created_at)->diffForHumans() }}</span>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-
-                                <div class="px-6 py-4 bg-slate-50 border-t border-slate-100">
-                                    {{ $logs->links() }}
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-                    
-                </main>
+    {{-- OVERVIEW TAB --}}
+    @if($tab === 'overview')
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+            <div class="bg-surface border border-outline-variant rounded p-6">
+                <p class="font-mono text-xs text-on-surface-variant uppercase tracking-widest mb-2">Total Pengguna</p>
+                <h3 class="text-3xl font-bold text-primary">{{ $stats['total_users'] }}</h3>
+            </div>
+            <div class="bg-surface border border-outline-variant rounded p-6">
+                <p class="font-mono text-xs text-on-surface-variant uppercase tracking-widest mb-2">EC2 Compute Aktif</p>
+                <h3 class="text-3xl font-bold text-primary">{{ $stats['running_instances'] }}</h3>
+            </div>
+            <div class="bg-surface border border-outline-variant rounded p-6">
+                <p class="font-mono text-xs text-on-surface-variant uppercase tracking-widest mb-2">S3 Storage Aktif</p>
+                <h3 class="text-3xl font-bold text-primary">{{ $stats['active_buckets'] }}</h3>
+            </div>
+            <div class="bg-surface border border-outline-variant rounded p-6">
+                <p class="font-mono text-xs text-on-surface-variant uppercase tracking-widest mb-2">Pendapatan Diterima</p>
+                <h3 class="text-2xl font-bold text-primary">Rp {{ number_format($stats['total_revenue'], 2, ',', '.') }}</h3>
+            </div>
+            <div class="bg-surface border border-outline-variant rounded p-6">
+                <p class="font-mono text-xs text-on-surface-variant uppercase tracking-widest mb-2">Tagihan Tertunda</p>
+                <h3 class="text-2xl font-bold text-error">Rp {{ number_format($stats['pending_payments'], 2, ',', '.') }}</h3>
+            </div>
+            <div class="bg-surface border border-outline-variant rounded p-6">
+                <p class="font-mono text-xs text-on-surface-variant uppercase tracking-widest mb-2">Total Saldo Pengguna</p>
+                <h3 class="text-2xl font-bold text-primary">Rp {{ number_format($stats['total_balance'], 2, ',', '.') }}</h3>
             </div>
         </div>
-    </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const serviceSelect = document.getElementById('service-select');
-            const storageContainer = document.getElementById('storage-quota-container');
-            const computeContainer = document.getElementById('compute-quota-container');
-            const storageInput = document.getElementById('storage_quota_input');
-            const computeInput = document.getElementById('compute_quota_input');
+        <div class="bg-surface border border-outline-variant rounded p-6">
+            <div class="border-b border-outline-variant pb-3 mb-4 flex justify-between items-center">
+                <h3 class="font-semibold text-primary flex items-center gap-2">
+                    <span class="material-symbols-outlined">history</span> Log Aktivitas Terbaru
+                </h3>
+                <a href="{{ route('admin.logs', ['tab' => 'logs']) }}" class="text-xs text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1">
+                    View All <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                </a>
+            </div>
 
-            function toggleQuotaFields() {
-                if (!serviceSelect) return;
-                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                if (!selectedOption || serviceSelect.value === "") {
-                    storageContainer.style.display = 'none';
-                    computeContainer.style.display = 'none';
-                    return;
-                }
+            <div class="space-y-4">
+                @forelse($recentLogs as $log)
+                    <div class="flex items-start gap-4 pb-4 border-b border-outline-variant/30 last:border-0 last:pb-0">
+                        <div class="flex-shrink-0 mt-0.5">
+                            @if($log->action_type == 'create')
+                                <div class="flex items-center justify-center h-8 w-8 rounded bg-primary text-on-primary-fixed"><span class="material-symbols-outlined text-sm">add</span></div>
+                            @elseif($log->action_type == 'delete')
+                                <div class="flex items-center justify-center h-8 w-8 rounded bg-error/15 text-error"><span class="material-symbols-outlined text-sm">delete</span></div>
+                            @else
+                                <div class="flex items-center justify-center h-8 w-8 rounded bg-surface-container-highest text-primary"><span class="material-symbols-outlined text-sm">info</span></div>
+                            @endif
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-center">
+                                <p class="text-sm font-semibold text-primary">{{ $log->description }}</p>
+                                <span class="font-mono text-[10px] text-on-surface-variant">{{ \Carbon\Carbon::parse($log->created_at)->diffForHumans() }}</span>
+                            </div>
+                            <p class="text-xs text-on-surface-variant mt-1">
+                                Oleh: <span class="font-semibold">{{ $log->user_name ?? 'System/Deleted User' }}</span>
+                            </p>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center py-6 text-on-surface-variant text-sm font-mono border border-dashed border-outline-variant rounded">
+                        Tidak ada log aktivitas saat ini.
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    @endif
 
-                const category = selectedOption.getAttribute('data-category');
-                if (category === 'Storage') {
-                    storageContainer.style.display = 'block';
-                    computeContainer.style.display = 'none';
-                    computeInput.value = '0';
-                } else if (category === 'Compute') {
-                    storageContainer.style.display = 'none';
-                    computeContainer.style.display = 'block';
-                    storageInput.value = '0';
-                } else {
-                    storageContainer.style.display = 'none';
-                    computeContainer.style.display = 'none';
-                }
-            }
+    {{-- KELOLA PENGGUNA TAB --}}
+    @if($tab === 'users')
+        <div class="bg-surface border border-outline-variant rounded overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left border-collapse whitespace-nowrap">
+                    <thead class="bg-surface-container-lowest border-b border-outline-variant">
+                        <tr class="font-mono text-on-surface-variant uppercase">
+                            <th class="px-4 py-3">Nama & Email</th>
+                            <th class="px-4 py-3">Role</th>
+                            <th class="px-4 py-3 text-right">Saldo Virtual</th>
+                            <th class="px-4 py-3 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant">
+                        @foreach($users as $user)
+                            <tr class="hover:bg-surface-container-highest transition-colors">
+                                <td class="px-4 py-3">
+                                    <span class="font-semibold text-primary block">{{ $user->name }}</span>
+                                    <span class="font-mono text-[10px] text-on-surface-variant">{{ $user->email }}</span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex px-2.5 py-0.5 text-[9px] font-bold uppercase rounded-full border {{ $user->role === 'admin' ? 'bg-primary/20 text-primary border-primary/30' : 'bg-surface-container text-on-surface-variant border-outline-variant' }}">
+                                        {{ $user->role }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <span class="text-sm font-bold text-primary font-mono">Rp {{ number_format($user->virtual_balance, 2, ',', '.') }}</span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center justify-center space-x-2">
+                                        <form action="{{ route('admin.users.balance', $user->id) }}" method="POST" class="flex items-center space-x-1">
+                                            @csrf
+                                            <input type="number" name="amount" placeholder="+/- Saldo" step="0.01" class="w-24 text-xs bg-surface-container-lowest border border-outline-variant rounded p-1 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" required>
+                                            <button type="submit" class="bg-primary hover:bg-primary/90 text-on-primary-fixed px-2 py-1 text-xs rounded font-semibold transition" title="Sesuaikan Saldo">
+                                                <span class="material-symbols-outlined text-sm leading-none">account_balance_wallet</span>
+                                            </button>
+                                        </form>
 
-            if (serviceSelect) {
-                serviceSelect.addEventListener('change', toggleQuotaFields);
-                toggleQuotaFields(); // Initial run
-            }
-        });
-    </script>
-</body>
-</html>
+                                        @if(Auth::id() != $user->id)
+                                            <form action="{{ route('admin.users.role', $user->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                <input type="hidden" name="role" value="{{ $user->role === 'admin' ? 'user' : 'admin' }}">
+                                                <button type="submit" class="p-1 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded transition-colors border border-transparent hover:border-outline-variant" title="Ubah Role">
+                                                    <span class="material-symbols-outlined text-sm leading-none">swap_horiz</span>
+                                                </button>
+                                            </form>
+
+                                            <form action="{{ route('admin.users.delete', $user->id) }}" method="POST" class="inline" onsubmit="return confirm('Yakin hapus pengguna ini? Semua data terkait terhapus.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="p-1 text-error/70 hover:text-error hover:bg-error/10 rounded transition-colors border border-transparent hover:border-error/30" title="Hapus">
+                                                    <span class="material-symbols-outlined text-sm leading-none">delete</span>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+
+    {{-- PAKET LANGGANAN TAB --}}
+    @if($tab === 'plans')
+        <div class="space-y-8">
+            <div class="bg-surface border border-outline-variant rounded overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left border-collapse whitespace-nowrap">
+                        <thead class="bg-surface-container-lowest border-b border-outline-variant">
+                            <tr class="font-mono text-on-surface-variant uppercase">
+                                <th class="px-4 py-3">Nama Paket</th>
+                                <th class="px-4 py-3">Layanan</th>
+                                <th class="px-4 py-3">Kuota</th>
+                                <th class="px-4 py-3 text-right">Harga / Bln</th>
+                                <th class="px-4 py-3 text-center">Status</th>
+                                <th class="px-4 py-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-outline-variant">
+                            @foreach($plans as $plan)
+                                <tr class="hover:bg-surface-container-highest transition-colors">
+                                    <td class="px-4 py-3">
+                                        <span class="font-semibold text-primary block">{{ $plan->plan_name }}</span>
+                                        <span class="font-mono text-[10px] text-on-surface-variant block mt-0.5 truncate max-w-[200px]">{{ $plan->description }}</span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="font-semibold text-primary block">{{ $plan->service_name }}</span>
+                                        <span class="font-mono text-[9px] font-bold uppercase text-on-surface-variant block mt-0.5">{{ $plan->service_category }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 font-mono text-[10px] text-on-surface-variant">
+                                        @if($plan->storage_quota_gb > 0)
+                                            <div class="flex gap-1 items-center"><span class="material-symbols-outlined text-[12px]">storage</span> {{ $plan->storage_quota_gb }} GB</div>
+                                        @endif
+                                        @if($plan->compute_quota_vcpu > 0)
+                                            <div class="flex gap-1 items-center"><span class="material-symbols-outlined text-[12px]">memory</span> {{ $plan->compute_quota_vcpu }} vCPU</div>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-mono font-bold text-primary text-sm">
+                                        Rp {{ number_format($plan->monthly_price, 2, ',', '.') }}
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="inline-flex px-2.5 py-0.5 text-[9px] font-bold uppercase rounded-full border {{ $plan->is_active ? 'bg-primary/20 text-primary border-primary/30' : 'bg-surface-container text-on-surface-variant border-outline-variant' }}">
+                                            {{ $plan->is_active ? 'AKTIF' : 'NON-AKTIF' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center justify-center space-x-2">
+                                            <form action="{{ route('admin.plans.toggle', $plan->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                <button type="submit" class="px-2 py-1 text-xs rounded font-semibold border transition-colors {{ $plan->is_active ? 'border-outline-variant text-on-surface-variant hover:bg-surface-container' : 'bg-primary text-on-primary-fixed border-primary' }}">
+                                                    {{ $plan->is_active ? 'Matikan' : 'Aktifkan' }}
+                                                </button>
+                                            </form>
+                                            <form action="{{ route('admin.plans.delete', $plan->id) }}" method="POST" class="inline" onsubmit="return confirm('Yakin hapus paket ini?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="p-1 text-error/70 hover:text-error hover:bg-error/10 rounded transition-colors">
+                                                    <span class="material-symbols-outlined text-sm leading-none">delete</span>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="add-plan-panel" class="bg-surface border border-outline-variant rounded p-6 scroll-mt-24">
+                <div class="border-b border-outline-variant pb-3 mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">add_circle</span>
+                    <h3 class="font-semibold text-primary">Buat Paket Baru</h3>
+                </div>
+                
+                <form action="{{ route('admin.plans.create') }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @csrf
+                    <div>
+                        <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Layanan IaaS</label>
+                        <select id="service-select" name="service_id" class="w-full text-sm bg-surface-container-lowest border border-outline-variant rounded p-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" required>
+                            <option value="" disabled selected>-- Pilih Layanan --</option>
+                            @foreach($services as $svc)
+                                <option value="{{ $svc->id }}" data-category="{{ $svc->service_category }}">{{ $svc->service_name }} ({{ $svc->service_category }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Nama Paket</label>
+                        <input type="text" name="plan_name" placeholder="Contoh: Premium Storage" class="w-full text-sm bg-surface-container-lowest border border-outline-variant rounded p-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" required>
+                    </div>
+
+                    <div id="storage-quota-container" style="display: none;">
+                        <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Penyimpanan (GB)</label>
+                        <input type="number" id="storage_quota_input" name="storage_quota_gb" placeholder="0" min="0" class="w-full text-sm bg-surface-container-lowest border border-outline-variant rounded p-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none">
+                    </div>
+
+                    <div id="compute-quota-container" style="display: none;">
+                        <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Compute (vCPU)</label>
+                        <input type="number" id="compute_quota_input" name="compute_quota_vcpu" placeholder="0" min="0" class="w-full text-sm bg-surface-container-lowest border border-outline-variant rounded p-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none">
+                    </div>
+
+                    <input type="hidden" name="network_quota_vpc" value="0">
+
+                    <div>
+                        <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Harga Bulanan (Rp)</label>
+                        <input type="number" name="monthly_price" placeholder="0" min="0" step="0.01" class="w-full text-sm bg-surface-container-lowest border border-outline-variant rounded p-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" required>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Deskripsi / SLA</label>
+                        <textarea name="description" rows="2" class="w-full text-sm bg-surface-container-lowest border border-outline-variant rounded p-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"></textarea>
+                    </div>
+
+                    <div class="md:col-span-2 mt-2">
+                        <button type="submit" class="bg-primary hover:bg-primary/90 text-on-primary-fixed w-full py-2 text-sm rounded font-semibold transition">
+                            Simpan Paket Baru
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <script>
+                document.getElementById('service-select')?.addEventListener('change', function() {
+                    const category = this.options[this.selectedIndex].getAttribute('data-category');
+                    document.getElementById('storage-quota-container').style.display = category === 'Storage' ? 'block' : 'none';
+                    document.getElementById('compute-quota-container').style.display = category === 'Compute' ? 'block' : 'none';
+                    if(category === 'Storage') document.getElementById('compute_quota_input').value = '0';
+                    if(category === 'Compute') document.getElementById('storage_quota_input').value = '0';
+                });
+            </script>
+        </div>
+    @endif
+
+    {{-- RESOURCES, PAYMENTS, LOGS TABS --}}
+    {{-- Copy-paste kode tabel Resources, Payments, dan Logs kamu persis seperti format tabel di atas agar strukturnya sama rapi dengan "bg-surface" --}}
+</x-admin-layout>
