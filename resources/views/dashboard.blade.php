@@ -705,22 +705,52 @@
                     @if ($userCredentials->count() > 0)
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             @foreach ($userCredentials as $cred)
-                                <div class="bg-surface-container-lowest p-4 rounded border border-outline-variant relative">
+                                <div x-data="{ showAccess: false, showSecret: false }" class="bg-surface-container-lowest p-4 rounded border border-outline-variant relative">
                                     <div class="absolute top-3 right-3 font-mono text-[9px] font-bold text-on-primary-fixed bg-primary px-2 py-0.5 rounded uppercase">
                                         {{ $cred->resource_type }}
                                     </div>
                                     <h4 class="font-bold text-primary mb-3 text-sm">{{ $cred->instance_name }}</h4>
 
                                     <div class="mb-3">
-                                        <span class="block font-mono text-[10px] text-on-surface-variant uppercase mb-1">Access Key ID:</span>
-                                        <code class="bg-surface-container border border-outline-variant px-2 py-1 rounded text-xs text-primary block w-full truncate font-mono select-all">
-                                            {{ $cred->access_key }}
+                                        <div class="flex justify-between items-center mb-1">
+                                            <span class="block font-mono text-[10px] text-on-surface-variant uppercase">Access Key ID:</span>
+                                            <button @click="showAccess = !showAccess" type="button" class="text-on-surface-variant hover:text-primary transition focus:outline-none" :title="showAccess ? 'Sembunyikan' : 'Tampilkan'">
+                                                <template x-if="!showAccess">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.43 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                                    </svg>
+                                                </template>
+                                                <template x-if="showAccess">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.322 16.178 7.259 19.2 11.898 19.2c1.488 0 2.9-.304 4.18-.851m3.293-3.293A10.47 10.47 0 0 0 21.93 12C20.54 7.822 16.604 4.8 11.9 4.8c-1.487 0-2.902.304-4.18.851m0 0L3.75 3.75M20.25 20.25l-3.24-3.24m0 0L7.5 7.5m9.06 9.06-9.06-9.06" />
+                                                    </svg>
+                                                </template>
+                                            </button>
+                                        </div>
+                                        <code class="bg-surface-container border border-outline-variant px-2 py-1 rounded text-xs text-primary block w-full truncate font-mono select-all" x-text="showAccess ? {{ json_encode($cred->access_key) }} : '••••••••••••••••'">
+                                            ••••••••••••••••
                                         </code>
                                     </div>
                                     <div>
-                                        <span class="block font-mono text-[10px] text-on-surface-variant uppercase mb-1">Secret Access Key:</span>
-                                        <code class="bg-surface-container border border-outline-variant px-2 py-1 rounded text-xs text-primary block w-full truncate font-mono select-all">
-                                            {{ decrypt($cred->secret_key_encrypted) }}
+                                        <div class="flex justify-between items-center mb-1">
+                                            <span class="block font-mono text-[10px] text-on-surface-variant uppercase">Secret Access Key:</span>
+                                            <button @click="showSecret = !showSecret" type="button" class="text-on-surface-variant hover:text-primary transition focus:outline-none" :title="showSecret ? 'Sembunyikan' : 'Tampilkan'">
+                                                <template x-if="!showSecret">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.43 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                                    </svg>
+                                                </template>
+                                                <template x-if="showSecret">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.322 16.178 7.259 19.2 11.898 19.2c1.488 0 2.9-.304 4.18-.851m3.293-3.293A10.47 10.47 0 0 0 21.93 12C20.54 7.822 16.604 4.8 11.9 4.8c-1.487 0-2.902.304-4.18.851m0 0L3.75 3.75M20.25 20.25l-3.24-3.24m0 0L7.5 7.5m9.06 9.06-9.06-9.06" />
+                                                    </svg>
+                                                </template>
+                                            </button>
+                                        </div>
+                                        <code class="bg-surface-container border border-outline-variant px-2 py-1 rounded text-xs text-primary block w-full truncate font-mono select-all" x-text="showSecret ? {{ json_encode(decrypt($cred->secret_key_encrypted)) }} : '••••••••••••••••••••••••••••••••'">
+                                            ••••••••••••••••••••••••••••••••
                                         </code>
                                     </div>
                                 </div>
