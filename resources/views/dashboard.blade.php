@@ -461,7 +461,7 @@
                             <select name="plan_id" class="w-full text-sm" required>
                                 <option value="" disabled selected>-- Select Storage Plan --</option>
                                 @foreach ($storagePlans as $plan)
-                                    <option value="{{ $plan->id }}">{{ $plan->plan_name }} ({{ $plan->storage_quota_gb }}GB) - ${{ $plan->monthly_price }}/mo</option>
+                                    <option value="{{ $plan->id }}">{{ $plan->plan_name }} ({{ $plan->storage_quota_gb }}GB) - Rp{{ $plan->monthly_price }}/mo</option>
                                 @endforeach
                             </select>
                         </div>
