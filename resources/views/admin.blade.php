@@ -49,16 +49,52 @@
 
     {{-- Alert Messages --}}
     @if (session('success'))
-        <div
-            class="p-4 bg-primary/20 text-primary border border-primary/30 rounded flex items-center gap-md font-semibold">
-            <span class="material-symbols-outlined">check_circle</span>
-            <span>{{ session('success') }}</span>
+        <div x-data="{ show: true }" x-show="show" x-transition
+            class="p-4 mb-4 bg-primary/20 text-primary border border-primary/30 rounded flex items-center justify-between font-semibold">
+            <div class="flex items-center gap-md">
+                <span class="material-symbols-outlined">check_circle</span>
+                <span>{{ session('success') }}</span>
+            </div>
+            <button @click="show = false" class="text-primary hover:opacity-85 transition focus:outline-none" title="Tutup">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
     @endif
     @if (session('error'))
-        <div class="p-4 bg-error/15 text-error border border-error/30 rounded flex items-center gap-md font-semibold">
-            <span class="material-symbols-outlined">error</span>
-            <span>{{ session('error') }}</span>
+        <div x-data="{ show: true }" x-show="show" x-transition
+            class="p-4 mb-4 bg-error/15 text-error border border-error/30 rounded flex items-center justify-between font-semibold">
+            <div class="flex items-center gap-md">
+                <span class="material-symbols-outlined">error</span>
+                <span>{{ session('error') }}</span>
+            </div>
+            <button @click="show = false" class="text-error hover:opacity-85 transition focus:outline-none" title="Tutup">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    @endif
+    @if ($errors->any())
+        <div x-data="{ show: true }" x-show="show" x-transition
+            class="p-4 mb-4 bg-error/15 text-error border border-error/30 rounded flex flex-col gap-2 font-semibold">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-md">
+                    <span class="material-symbols-outlined">error</span>
+                    <span>Terdapat kesalahan pada input Anda:</span>
+                </div>
+                <button @click="show = false" class="text-error hover:opacity-85 transition focus:outline-none" title="Tutup">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <ul class="list-disc list-inside text-xs font-normal pl-8">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
         </div>
     @endif
 
@@ -362,6 +398,9 @@
                                     {{ $svc->service_name }} ({{ $svc->service_category }})</option>
                             @endforeach
                         </select>
+                        @error('service_id')
+                            <p class="text-[10px] text-error mt-1 font-semibold">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <div>
@@ -370,6 +409,9 @@
                         <input type="text" name="plan_name" placeholder="Contoh: Premium Storage"
                             class="w-full text-sm bg-surface-container-lowest border border-outline-variant rounded p-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
                             required>
+                        @error('plan_name')
+                            <p class="text-[10px] text-error mt-1 font-semibold">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <div id="storage-quota-container" style="display: none;">
@@ -378,6 +420,9 @@
                         <input type="number" id="storage_quota_input" name="storage_quota_gb" placeholder="0"
                             min="0"
                             class="w-full text-sm bg-surface-container-lowest border border-outline-variant rounded p-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none">
+                        @error('storage_quota_gb')
+                            <p class="text-[10px] text-error mt-1 font-semibold">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <div id="compute-quota-container" style="display: none;">
@@ -386,6 +431,9 @@
                         <input type="number" id="compute_quota_input" name="compute_quota_vcpu" placeholder="0"
                             min="0"
                             class="w-full text-sm bg-surface-container-lowest border border-outline-variant rounded p-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none">
+                        @error('compute_quota_vcpu')
+                            <p class="text-[10px] text-error mt-1 font-semibold">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <input type="hidden" name="network_quota_vpc" value="0">
@@ -396,6 +444,9 @@
                         <input type="number" name="monthly_price" placeholder="0" min="0" step="0.01"
                             class="w-full text-sm bg-surface-container-lowest border border-outline-variant rounded p-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
                             required>
+                        @error('monthly_price')
+                            <p class="text-[10px] text-error mt-1 font-semibold">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <div class="md:col-span-2">
@@ -403,6 +454,9 @@
                             SLA</label>
                         <textarea name="description" rows="2"
                             class="w-full text-sm bg-surface-container-lowest border border-outline-variant rounded p-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"></textarea>
+                        @error('description')
+                            <p class="text-[10px] text-error mt-1 font-semibold">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <div class="md:col-span-2 mt-2">

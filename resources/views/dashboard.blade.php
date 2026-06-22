@@ -50,15 +50,52 @@
     </x-slot>
 
     @if (session('success'))
-        <div class="mb-6 p-4 bg-primary text-on-primary-fixed border border-outline-variant rounded flex items-center gap-md font-semibold">
-            <span class="material-symbols-outlined">check_circle</span>
-            <span>{{ session('success') }}</span>
+        <div x-data="{ show: true }" x-show="show" x-transition
+             class="mb-6 p-4 bg-primary text-on-primary-fixed border border-outline-variant rounded flex items-center justify-between font-semibold">
+            <div class="flex items-center gap-md">
+                <span class="material-symbols-outlined">check_circle</span>
+                <span>{{ session('success') }}</span>
+            </div>
+            <button @click="show = false" class="text-on-primary-fixed hover:opacity-85 transition focus:outline-none" title="Tutup">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
     @endif
     @if (session('error'))
-        <div class="mb-6 p-4 bg-error/15 text-error border border-error/30 rounded flex items-center gap-md font-semibold">
-            <span class="material-symbols-outlined">error</span>
-            <span>{{ session('error') }}</span>
+        <div x-data="{ show: true }" x-show="show" x-transition
+             class="mb-6 p-4 bg-error/15 text-error border border-error/30 rounded flex items-center justify-between font-semibold">
+            <div class="flex items-center gap-md">
+                <span class="material-symbols-outlined">error</span>
+                <span>{{ session('error') }}</span>
+            </div>
+            <button @click="show = false" class="text-error hover:opacity-85 transition focus:outline-none" title="Tutup">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    @endif
+    @if ($errors->any())
+        <div x-data="{ show: true }" x-show="show" x-transition
+             class="mb-6 p-4 bg-error/15 text-error border border-error/30 rounded flex flex-col gap-2 font-semibold">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-md">
+                    <span class="material-symbols-outlined">error</span>
+                    <span>Terdapat kesalahan pada input Anda:</span>
+                </div>
+                <button @click="show = false" class="text-error hover:opacity-85 transition focus:outline-none" title="Tutup">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <ul class="list-disc list-inside text-xs font-normal pl-8">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
         </div>
     @endif
 
@@ -341,6 +378,9 @@
                             <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Instance Name</label>
                             <input type="text" name="instance_name" class="w-full text-sm" placeholder="e.g., prod-web-server" required>
                             <span class="text-[10px] text-on-surface-variant mt-1 block">Supported format: letters, numbers, dot, hyphens, underscores.</span>
+                            @error('instance_name')
+                                <p class="text-[10px] text-error mt-1 font-semibold">{{ $message }}</p>
+                            @enderror
                         </div>
                         <div>
                             <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Compute Plan</label>
@@ -350,6 +390,9 @@
                                     <option value="{{ $plan->id }}">{{ $plan->plan_name }} ({{ $plan->compute_quota_vcpu }} vCPU) - ${{ $plan->monthly_price }}/mo</option>
                                 @endforeach
                             </select>
+                            @error('plan_id')
+                                <p class="text-[10px] text-error mt-1 font-semibold">{{ $message }}</p>
+                            @enderror
                         </div>
                         <button type="submit" class="btn-primary w-full py-2 text-sm rounded">
                             Launch in MiniStack
@@ -455,6 +498,9 @@
                             <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Bucket Name</label>
                             <input type="text" name="bucket_name" class="w-full text-sm" placeholder="e.g., iaas-object-bucket" required>
                             <span class="text-[10px] text-on-surface-variant mt-1 block">Must be lowercase, alphanumeric, without spaces.</span>
+                            @error('bucket_name')
+                                <p class="text-[10px] text-error mt-1 font-semibold">{{ $message }}</p>
+                            @enderror
                         </div>
                         <div>
                             <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Storage Plan</label>
@@ -464,6 +510,9 @@
                                     <option value="{{ $plan->id }}">{{ $plan->plan_name }} ({{ $plan->storage_quota_gb }}GB) - Rp{{ $plan->monthly_price }}/mo</option>
                                 @endforeach
                             </select>
+                            @error('plan_id')
+                                <p class="text-[10px] text-error mt-1 font-semibold">{{ $message }}</p>
+                            @enderror
                         </div>
                         <button type="submit" class="btn-primary w-full py-2 text-sm rounded">
                             Provision in MiniStack
@@ -491,10 +540,16 @@
                             @else
                                 <input type="text" disabled class="w-full text-sm bg-surface-container-lowest text-on-surface-variant cursor-not-allowed" placeholder="No active buckets available.">
                             @endif
+                            @error('bucket_name')
+                                <p class="text-[10px] text-error mt-1 font-semibold">{{ $message }}</p>
+                            @enderror
                         </div>
                         <div>
                             <label class="block font-mono text-[10px] text-on-surface-variant mb-1.5 uppercase">Select Files</label>
                             <input type="file" name="files[]" multiple class="w-full text-xs bg-surface-container-lowest border border-outline-variant rounded p-2 text-on-surface file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-surface-container-highest file:text-primary hover:file:opacity-90" required>
+                            @error('files')
+                                <p class="text-[10px] text-error mt-1 font-semibold">{{ $message }}</p>
+                            @enderror
                         </div>
                         <button type="submit" class="btn-primary w-full py-2 text-sm rounded" {{ count($bucketsData) === 0 ? 'disabled' : '' }}>
                             Upload to MiniStack
@@ -569,6 +624,31 @@
 
                     <!-- Danger Zone Terminate Bucket -->
                     <div id="danger-zone-container" class="border-t border-outline-variant pt-md {{ session('current_bucket') ? '' : 'hidden' }}">
+                        <!-- Modify Storage Plan Feature -->
+                        <div class="mb-lg pb-lg border-b border-outline-variant">
+                            <h4 class="font-semibold text-primary mb-3 text-sm flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary text-sm font-semibold">upgrade</span>
+                                Modify Storage Plan
+                            </h4>
+                            <form action="{{ route('s3.modifyPlan') }}" method="POST" class="flex flex-col sm:flex-row items-end gap-3">
+                                @csrf
+                                <input type="hidden" name="bucket_name" id="modify-plan-bucket" value="{{ session('current_bucket') }}">
+                                <div class="flex-1 w-full">
+                                    <select name="target_plan_id" class="w-full text-xs" required>
+                                        <option value="" disabled selected>Select new storage plan...</option>
+                                        @foreach ($storagePlans as $plan)
+                                            <option value="{{ $plan->id }}">
+                                                {{ $plan->plan_name }} ({{ $plan->storage_quota_gb }}GB) - Rp{{ $plan->monthly_price }}/mo
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn-primary w-full sm:w-auto py-2 px-4 text-xs rounded font-semibold whitespace-nowrap">
+                                    Change Plan
+                                </button>
+                            </form>
+                        </div>
+
                         <form action="{{ route('s3.deleteBucket') }}" method="POST" onsubmit="return confirm('WARNING: Terminate this storage bucket? Billing will stop and all stored files will be permanently deleted.');">
                             @csrf
                             <input type="hidden" name="bucket_name" id="danger-zone-bucket" value="{{ session('current_bucket') }}">
@@ -581,6 +661,31 @@
 
                     @if (session('current_bucket') && !session('files'))
                         <div class="border-t border-outline-variant pt-md mt-md">
+                            <!-- Modify Storage Plan Feature -->
+                            <div class="mb-lg pb-lg border-b border-outline-variant">
+                                <h4 class="font-semibold text-primary mb-3 text-sm flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-primary text-sm font-semibold">upgrade</span>
+                                    Modify Storage Plan
+                                </h4>
+                                <form action="{{ route('s3.modifyPlan') }}" method="POST" class="flex flex-col sm:flex-row items-end gap-3">
+                                    @csrf
+                                    <input type="hidden" name="bucket_name" value="{{ session('current_bucket') }}">
+                                    <div class="flex-1 w-full">
+                                        <select name="target_plan_id" class="w-full text-xs" required>
+                                            <option value="" disabled selected>Select new storage plan...</option>
+                                            @foreach ($storagePlans as $plan)
+                                                <option value="{{ $plan->id }}">
+                                                    {{ $plan->plan_name }} ({{ $plan->storage_quota_gb }}GB) - Rp{{ $plan->monthly_price }}/mo
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn-primary w-full sm:w-auto py-2 px-4 text-xs rounded font-semibold whitespace-nowrap">
+                                        Change Plan
+                                    </button>
+                                </form>
+                            </div>
+
                             <form action="{{ route('s3.deleteBucket') }}" method="POST" onsubmit="return confirm('WARNING: Terminate this storage bucket? Billing will stop and all stored files will be permanently deleted.');">
                                 @csrf
                                 <input type="hidden" name="bucket_name" value="{{ session('current_bucket') }}">
@@ -959,6 +1064,10 @@
                                 document.getElementById('danger-zone-container').classList.remove('hidden');
                                 document.getElementById('danger-zone-bucket').value = bucketName;
                                 document.getElementById('danger-zone-text').innerText = `Terminate Service (${bucketName})`;
+                                const modifyPlanBucket = document.getElementById('modify-plan-bucket');
+                                if (modifyPlanBucket) {
+                                    modifyPlanBucket.value = bucketName;
+                                }
                             }
                         })
                         .catch(() => {

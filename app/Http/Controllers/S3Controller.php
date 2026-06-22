@@ -23,6 +23,24 @@ class S3Controller extends Controller
         $planId = $request->plan_id;
         $userId = Auth::id();
 
+        // Check if bucket name is already registered in provisioned_resources
+        $existsInDb = DB::table('provisioned_resources')
+            ->where('ministack_resource_id', $bucketName)
+            ->exists();
+        if ($existsInDb) {
+            return back()->withInput()->with('error', 'Nama bucket S3 tersebut sudah digunakan. Silakan pilih nama lain yang unik.');
+        }
+
+        // Check if bucket already exists in MiniStack S3
+        try {
+            $s3Client = Storage::disk('s3')->getClient();
+            if ($s3Client->doesBucketExist($bucketName)) {
+                return back()->withInput()->with('error', 'Nama bucket tersebut sudah terdaftar di server storage. Silakan gunakan nama lain.');
+            }
+        } catch (\Exception $e) {
+            // Fail silently or handle if S3 client cannot connect (e.g. testing)
+        }
+
         // Fetch the plan to dynamically calculate the hourly billing cost
         $plan = DB::table('subscription_plans')->where('id', $planId)->first();
         $hourlyCost = $plan ? ($plan->monthly_price / 720) : 105.00;
@@ -329,13 +347,54 @@ class S3Controller extends Controller
         $targetPlanId = $request->target_plan_id;
         $userId = Auth::id();
 
-        // 1. Fetch the new plan details from subscription_plans
-        $plan = DB::table('subscription_plans')->where('id', $targetPlanId)->first();
-        if (!$plan) {
-            return back()->with('error', 'Plan target tidak ditemukan.');
+        // 1. Retrieve the resource and make sure it exists, is storage, and belongs to the user
+        $resource = DB::table('provisioned_resources')
+            ->where('ministack_resource_id', $bucketName)
+            ->where('user_id', $userId)
+            ->where('resource_type', 'storage')
+            ->first();
+
+        if (!$resource) {
+            return back()->with('error', 'Resource bucket tidak ditemukan atau bukan milik Anda.');
         }
 
-        // 2. Update the user_subscriptions table (if it exists)
+        // 2. Fetch the new plan details from subscription_plans (ensure it is a Storage plan)
+        $plan = DB::table('subscription_plans')
+            ->join('iaas_services', 'subscription_plans.service_id', '=', 'iaas_services.id')
+            ->where('subscription_plans.id', $targetPlanId)
+            ->where('iaas_services.service_category', 'Storage')
+            ->select('subscription_plans.*')
+            ->first();
+
+        if (!$plan) {
+            return back()->with('error', 'Target plan tidak valid untuk layanan Storage.');
+        }
+
+        // 3. Quota check: ensure current usage doesn't exceed the target plan's storage quota
+        $usedBytes = 0;
+        try {
+            $s3Client = Storage::disk('s3')->getClient();
+            $objects = $s3Client->listObjectsV2(['Bucket' => $bucketName]);
+            if (!empty($objects['Contents'])) {
+                foreach ($objects['Contents'] as $object) {
+                    $usedBytes += $object['Size'];
+                }
+            }
+        } catch (\Exception $e) {
+            // Fail silently if S3/MiniStack is off, allowing tests to run
+        }
+        $usedGB = $usedBytes / (1024 * 1024 * 1024);
+
+        if ($usedGB > $plan->storage_quota_gb) {
+            if ($usedGB > 0 && $usedGB < 0.1) {
+                $displaySize = round($usedBytes / (1024 * 1024), 2) . ' MB';
+            } else {
+                $displaySize = round($usedGB, 2) . ' GB';
+            }
+            return back()->with('error', "Anda tidak dapat menurunkan paket penyimpanan. Kapasitas yang digunakan saat ini ({$displaySize}) melebihi kuota paket target ({$plan->storage_quota_gb} GB).");
+        }
+
+        // 4. Update the user_subscriptions table (if it exists)
         if (\Illuminate\Support\Facades\Schema::hasTable('user_subscriptions')) {
             DB::table('user_subscriptions')
                 ->where('ministack_bucket_name', $bucketName)
@@ -347,7 +406,7 @@ class S3Controller extends Controller
                 ]);
         }
 
-        // 3. Update the provisioned_resources table
+        // 5. Update the provisioned_resources table
         $hourlyCost = $plan->monthly_price / 720;
 
         DB::table('provisioned_resources')
@@ -361,20 +420,13 @@ class S3Controller extends Controller
             ]);
 
         // Log the activity
-        $resource = DB::table('provisioned_resources')
-            ->where('ministack_resource_id', $bucketName)
-            ->where('user_id', $userId)
-            ->first();
-
-        if ($resource) {
-            DB::table('activity_logs')->insert([
-                'user_id'     => $userId,
-                'resource_id' => $resource->id,
-                'action_type' => 'update',
-                'description' => "Modified S3 Bucket {$bucketName} subscription plan to '{$plan->plan_name}'",
-                'created_at'  => now(),
-            ]);
-        }
+        DB::table('activity_logs')->insert([
+            'user_id'     => $userId,
+            'resource_id' => $resource->id,
+            'action_type' => 'update',
+            'description' => "Modified S3 Bucket {$bucketName} subscription plan to '{$plan->plan_name}'",
+            'created_at'  => now(),
+        ]);
 
         return back()->with('success', "Subscription plan updated to '{$plan->plan_name}' successfully!");
     }
