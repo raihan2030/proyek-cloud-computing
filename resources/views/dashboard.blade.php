@@ -854,9 +854,166 @@
                                                 </template>
                                             </button>
                                         </div>
-                                        <code class="bg-surface-container border border-outline-variant px-2 py-1 rounded text-xs text-primary block w-full truncate font-mono select-all" x-text="showSecret ? {{ json_encode(decrypt($cred->secret_key_encrypted)) }} : '••••••••••••••••••••••••••••••••'">
-                                            ••••••••••••••••••••••••••••••••
-                                        </code>
+                                    </div>
+
+                                    <!-- Collapsible cURL Guide -->
+                                    <div x-data="{ openGuide: false }" class="mt-4 border-t border-outline-variant/50 pt-3">
+                                        <button @click="openGuide = !openGuide" type="button" class="w-full flex justify-between items-center text-xs font-semibold text-primary hover:underline focus:outline-none">
+                                            <span class="flex items-center gap-1.5">
+                                                <span class="material-symbols-outlined text-sm">terminal</span>
+                                                Integrasi cURL Guide
+                                            </span>
+                                            <span class="material-symbols-outlined text-sm transition-transform duration-200" :class="openGuide ? 'rotate-180' : ''">expand_more</span>
+                                        </button>
+
+                                        <div x-show="openGuide" class="mt-3 space-y-4" style="display: none;">
+                                            <!-- Windows compatibility note -->
+                                            <div class="bg-surface-container p-3 rounded border border-outline-variant text-[10px] text-on-surface-variant space-y-1">
+                                                <div class="flex items-center gap-1 text-primary font-bold">
+                                                    <span class="material-symbols-outlined text-xs">info</span>
+                                                    <span>Petunjuk Penting untuk Windows</span>
+                                                </div>
+                                                <p class="leading-relaxed font-sans">
+                                                    Jika Anda menjalankan perintah di <strong>PowerShell</strong>, gunakan perintah <code class="bg-surface-container-highest px-1 rounded text-primary font-mono text-[9px]">curl.exe</code> (tambahkan akhiran .exe) agar tidak terjadi error parameter. Jika menggunakan <strong>Command Prompt (CMD)</strong>, Anda bisa menggunakan kata <code class="bg-surface-container-highest px-1 rounded text-primary font-mono text-[9px]">curl</code> secara langsung.
+                                                </p>
+                                            </div>
+
+                                            @if ($cred->resource_type === 'storage')
+                                                <!-- List Files -->
+                                                <div class="space-y-1">
+                                                    <div class="flex justify-between items-center">
+                                                        <span class="text-on-surface-variant font-bold uppercase text-[9px]">1. List Files (Melihat Daftar File)</span>
+                                                        <button @click="navigator.clipboard.writeText('curl -H &quot;X-Access-Key: ' + {{ json_encode($cred->access_key) }} + '&quot; -H &quot;X-Secret-Key: ' + {{ json_encode(decrypt($cred->secret_key_encrypted)) }} + '&quot; {{ url('/api/s3/files') }}')" type="button" class="text-primary hover:text-primary-hover flex items-center gap-0.5 text-[9px] font-mono" title="Copy Command">
+                                                            <span class="material-symbols-outlined text-xs">content_copy</span> Copy
+                                                        </button>
+                                                    </div>
+                                                    <p class="text-[10px] text-on-surface-variant font-sans leading-normal">
+                                                        Perintah untuk melihat semua nama file yang saat ini ada di dalam storage bucket Anda.
+                                                    </p>
+                                                    <code class="block bg-surface-container p-2 rounded overflow-x-auto whitespace-nowrap border border-outline-variant text-[9px] text-on-surface font-mono select-all">
+                                                        curl -H "X-Access-Key: <span x-text="showAccess ? '{{ $cred->access_key }}' : '••••••••'"></span>" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-H "X-Secret-Key: <span x-text="showSecret ? '{{ decrypt($cred->secret_key_encrypted) }}' : '••••••••'"></span>" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ url('/api/s3/files') }}
+                                                    </code>
+                                                </div>
+
+                                                <!-- Upload File -->
+                                                <div class="space-y-1">
+                                                    <div class="flex justify-between items-center">
+                                                        <span class="text-on-surface-variant font-bold uppercase text-[9px]">2. Upload File (Mengunggah File)</span>
+                                                        <button @click="navigator.clipboard.writeText('curl -X POST -H &quot;X-Access-Key: ' + {{ json_encode($cred->access_key) }} + '&quot; -H &quot;X-Secret-Key: ' + {{ json_encode(decrypt($cred->secret_key_encrypted)) }} + '&quot; -F &quot;file=@/path/to/file.txt&quot; {{ url('/api/s3/upload') }}')" type="button" class="text-primary hover:text-primary-hover flex items-center gap-0.5 text-[9px] font-mono" title="Copy Command">
+                                                            <span class="material-symbols-outlined text-xs">content_copy</span> Copy
+                                                        </button>
+                                                    </div>
+                                                    <p class="text-[10px] text-on-surface-variant font-sans leading-normal">
+                                                        Perintah untuk mengunggah file. Ganti bagian <code class="bg-surface-container-highest px-1 rounded text-primary font-mono text-[9px]">@/path/to/file.txt</code> dengan path file nyata di komputer Anda (contoh: <code class="bg-surface-container-highest px-1 rounded text-primary font-mono text-[9px]">@C:\Users\Nama\Photos\image.jpg</code>). Simbol <strong>@</strong> wajib disertakan.
+                                                    </p>
+                                                    <code class="block bg-surface-container p-2 rounded overflow-x-auto whitespace-nowrap border border-outline-variant text-[9px] text-on-surface font-mono select-all">
+                                                        curl -X POST -H "X-Access-Key: <span x-text="showAccess ? '{{ $cred->access_key }}' : '••••••••'"></span>" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-H "X-Secret-Key: <span x-text="showSecret ? '{{ decrypt($cred->secret_key_encrypted) }}' : '••••••••'"></span>" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-F "file=@/path/to/file.txt" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ url('/api/s3/upload') }}
+                                                    </code>
+                                                </div>
+
+                                                <!-- Download File -->
+                                                <div class="space-y-1">
+                                                    <div class="flex justify-between items-center">
+                                                        <span class="text-on-surface-variant font-bold uppercase text-[9px]">3. Download File (Mengunduh File)</span>
+                                                        <button @click="navigator.clipboard.writeText('curl -H &quot;X-Access-Key: ' + {{ json_encode($cred->access_key) }} + '&quot; -H &quot;X-Secret-Key: ' + {{ json_encode(decrypt($cred->secret_key_encrypted)) }} + '&quot; -G --data-urlencode &quot;key=file.txt&quot; -o &quot;downloaded_file.txt&quot; {{ url('/api/s3/download') }}')" type="button" class="text-primary hover:text-primary-hover flex items-center gap-0.5 text-[9px] font-mono" title="Copy Command">
+                                                            <span class="material-symbols-outlined text-xs">content_copy</span> Copy
+                                                        </button>
+                                                    </div>
+                                                    <div class="text-[10px] text-on-surface-variant font-sans leading-normal space-y-1">
+                                                        <p>Perintah untuk mengunduh file dari storage ke komputer Anda. Ada dua parameter penting yang perlu diubah:</p>
+                                                        <ul class="list-disc pl-4 space-y-0.5">
+                                                            <li>Ganti <code class="bg-surface-container-highest px-1 rounded text-primary font-mono text-[9px]">key=file.txt</code> dengan nama file di storage yang ingin Anda unduh (cek dari menu list files).</li>
+                                                            <li>Ganti <code class="bg-surface-container-highest px-1 rounded text-primary font-mono text-[9px]">-o "downloaded_file.txt"</code> dengan nama file baru di komputer Anda (contoh: <code class="bg-surface-container-highest px-1 rounded text-primary font-mono text-[9px]">-o "foto_liburan.png"</code>).</li>
+                                                        </ul>
+                                                    </div>
+                                                    <code class="block bg-surface-container p-2 rounded overflow-x-auto whitespace-nowrap border border-outline-variant text-[9px] text-on-surface font-mono select-all">
+                                                        curl -H "X-Access-Key: <span x-text="showAccess ? '{{ $cred->access_key }}' : '••••••••'"></span>" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-H "X-Secret-Key: <span x-text="showSecret ? '{{ decrypt($cred->secret_key_encrypted) }}' : '••••••••'"></span>" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-G --data-urlencode "key=file.txt" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-o "downloaded_file.txt" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ url('/api/s3/download') }}
+                                                    </code>
+                                                </div>
+
+                                                <!-- Delete File -->
+                                                <div class="space-y-1">
+                                                    <div class="flex justify-between items-center">
+                                                        <span class="text-on-surface-variant font-bold uppercase text-[9px]">4. Delete File (Menghapus File)</span>
+                                                        <button @click="navigator.clipboard.writeText('curl -X DELETE -H &quot;X-Access-Key: ' + {{ json_encode($cred->access_key) }} + '&quot; -H &quot;X-Secret-Key: ' + {{ json_encode(decrypt($cred->secret_key_encrypted)) }} + '&quot; -d &quot;key=file.txt&quot; {{ url('/api/s3/delete') }}')" type="button" class="text-primary hover:text-primary-hover flex items-center gap-0.5 text-[9px] font-mono" title="Copy Command">
+                                                            <span class="material-symbols-outlined text-xs">content_copy</span> Copy
+                                                        </button>
+                                                    </div>
+                                                    <p class="text-[10px] text-on-surface-variant font-sans leading-normal">
+                                                        Perintah untuk menghapus file secara permanen dari storage. Ganti <code class="bg-surface-container-highest px-1 rounded text-primary font-mono text-[9px]">key=file.txt</code> dengan nama file yang ingin dihapus.
+                                                    </p>
+                                                    <code class="block bg-surface-container p-2 rounded overflow-x-auto whitespace-nowrap border border-outline-variant text-[9px] text-on-surface font-mono select-all">
+                                                        curl -X DELETE -H "X-Access-Key: <span x-text="showAccess ? '{{ $cred->access_key }}' : '••••••••'"></span>" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-H "X-Secret-Key: <span x-text="showSecret ? '{{ decrypt($cred->secret_key_encrypted) }}' : '••••••••'"></span>" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-d "key=file.txt" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ url('/api/s3/delete') }}
+                                                    </code>
+                                                </div>
+                                            @elseif ($cred->resource_type === 'compute')
+                                                <!-- Get Status -->
+                                                <div class="space-y-1">
+                                                    <div class="flex justify-between items-center">
+                                                        <span class="text-on-surface-variant font-bold uppercase text-[9px]">1. Get Status (Mengecek Status VM)</span>
+                                                        <button @click="navigator.clipboard.writeText('curl -H &quot;X-Access-Key: ' + {{ json_encode($cred->access_key) }} + '&quot; -H &quot;X-Secret-Key: ' + {{ json_encode(decrypt($cred->secret_key_encrypted)) }} + '&quot; {{ url('/api/ec2/status') }}')" type="button" class="text-primary hover:text-primary-hover flex items-center gap-0.5 text-[9px] font-mono" title="Copy Command">
+                                                            <span class="material-symbols-outlined text-xs">content_copy</span> Copy
+                                                        </button>
+                                                    </div>
+                                                    <p class="text-[10px] text-on-surface-variant font-sans leading-normal">
+                                                        Perintah untuk mengecek apakah server virtual machine Anda sedang berjalan (<span class="text-success">running</span>), mati (<span class="text-error">stopped</span>), atau dihapus.
+                                                    </p>
+                                                    <code class="block bg-surface-container p-2 rounded overflow-x-auto whitespace-nowrap border border-outline-variant text-[9px] text-on-surface font-mono select-all">
+                                                        curl -H "X-Access-Key: <span x-text="showAccess ? '{{ $cred->access_key }}' : '••••••••'"></span>" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-H "X-Secret-Key: <span x-text="showSecret ? '{{ decrypt($cred->secret_key_encrypted) }}' : '••••••••'"></span>" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ url('/api/ec2/status') }}
+                                                    </code>
+                                                </div>
+
+                                                <!-- Start Instance -->
+                                                <div class="space-y-1">
+                                                    <div class="flex justify-between items-center">
+                                                        <span class="text-on-surface-variant font-bold uppercase text-[9px]">2. Start Instance (Menyalakan VM)</span>
+                                                        <button @click="navigator.clipboard.writeText('curl -X POST -H &quot;X-Access-Key: ' + {{ json_encode($cred->access_key) }} + '&quot; -H &quot;X-Secret-Key: ' + {{ json_encode(decrypt($cred->secret_key_encrypted)) }} + '&quot; {{ url('/api/ec2/start') }}')" type="button" class="text-primary hover:text-primary-hover flex items-center gap-0.5 text-[9px] font-mono" title="Copy Command">
+                                                            <span class="material-symbols-outlined text-xs">content_copy</span> Copy
+                                                        </button>
+                                                    </div>
+                                                    <p class="text-[10px] text-on-surface-variant font-sans leading-normal">
+                                                        Perintah untuk menyalakan server virtual machine Anda kembali.
+                                                    </p>
+                                                    <code class="block bg-surface-container p-2 rounded overflow-x-auto whitespace-nowrap border border-outline-variant text-[9px] text-on-surface font-mono select-all">
+                                                        curl -X POST -H "X-Access-Key: <span x-text="showAccess ? '{{ $cred->access_key }}' : '••••••••'"></span>" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-H "X-Secret-Key: <span x-text="showSecret ? '{{ decrypt($cred->secret_key_encrypted) }}' : '••••••••'"></span>" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ url('/api/ec2/start') }}
+                                                    </code>
+                                                </div>
+
+                                                <!-- Stop Instance -->
+                                                <div class="space-y-1">
+                                                    <div class="flex justify-between items-center">
+                                                        <span class="text-on-surface-variant font-bold uppercase text-[9px]">3. Stop Instance (Mematikan VM)</span>
+                                                        <button @click="navigator.clipboard.writeText('curl -X POST -H &quot;X-Access-Key: ' + {{ json_encode($cred->access_key) }} + '&quot; -H &quot;X-Secret-Key: ' + {{ json_encode(decrypt($cred->secret_key_encrypted)) }} + '&quot; {{ url('/api/ec2/stop') }}')" type="button" class="text-primary hover:text-primary-hover flex items-center gap-0.5 text-[9px] font-mono" title="Copy Command">
+                                                            <span class="material-symbols-outlined text-xs">content_copy</span> Copy
+                                                        </button>
+                                                    </div>
+                                                    <p class="text-[10px] text-on-surface-variant font-sans leading-normal">
+                                                        Perintah untuk menghentikan/mematikan server virtual machine Anda (status VM akan berubah menjadi stopped).
+                                                    </p>
+                                                    <code class="block bg-surface-container p-2 rounded overflow-x-auto whitespace-nowrap border border-outline-variant text-[9px] text-on-surface font-mono select-all">
+                                                        curl -X POST -H "X-Access-Key: <span x-text="showAccess ? '{{ $cred->access_key }}' : '••••••••'"></span>" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-H "X-Secret-Key: <span x-text="showSecret ? '{{ decrypt($cred->secret_key_encrypted) }}' : '••••••••'"></span>" \<br>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ url('/api/ec2/stop') }}
+                                                    </code>
+                                                </div>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                             @endforeach

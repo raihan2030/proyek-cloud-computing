@@ -11,19 +11,17 @@ use Aws\Iam\IamClient;
 
 class S3Controller extends Controller
 {
-    // Feature 1: Create Bucket with Dynamic Plan Choice
     public function createBucket(Request $request)
     {
         $request->validate([
             'bucket_name' => 'required|string|min:3|max:63|regex:/^[a-z0-9.-]+$/',
-            'plan_id' => 'required|exists:subscription_plans,id' // Validate the choice
+            'plan_id' => 'required|exists:subscription_plans,id' 
         ]);
 
         $bucketName = $request->bucket_name;
         $planId = $request->plan_id;
         $userId = Auth::id();
 
-        // Check if bucket name is already registered in provisioned_resources
         $existsInDb = DB::table('provisioned_resources')
             ->where('ministack_resource_id', $bucketName)
             ->exists();
@@ -31,17 +29,15 @@ class S3Controller extends Controller
             return back()->withInput()->with('error', 'Nama bucket S3 tersebut sudah digunakan. Silakan pilih nama lain yang unik.');
         }
 
-        // Check if bucket already exists in MiniStack S3
         try {
             $s3Client = Storage::disk('s3')->getClient();
             if ($s3Client->doesBucketExist($bucketName)) {
                 return back()->withInput()->with('error', 'Nama bucket tersebut sudah terdaftar di server storage. Silakan gunakan nama lain.');
             }
         } catch (\Exception $e) {
-            // Fail silently or handle if S3 client cannot connect (e.g. testing)
+            
         }
 
-        // Fetch the plan to dynamically calculate the hourly billing cost
         $plan = DB::table('subscription_plans')->where('id', $planId)->first();
         $hourlyCost = $plan ? ($plan->monthly_price / 720) : 105.00;
 
@@ -49,7 +45,6 @@ class S3Controller extends Controller
             $s3Client = Storage::disk('s3')->getClient();
             $s3Client->createBucket(['Bucket' => $bucketName]);
 
-            // 1. Save to Provisioned Resources (Gunakan insertGetId dan tampung di $resourceId)
             $resourceId = DB::table('provisioned_resources')->insertGetId([
                 'user_id'               => $userId,
                 'plan_id'               => $planId,
@@ -64,7 +59,6 @@ class S3Controller extends Controller
                 'updated_at'            => now()
             ]);
 
-            // 2. Tambahkan pencatatan ke activity_logs (Sesuai ERD)
             DB::table('activity_logs')->insert([
                 'user_id'     => $userId,
                 'resource_id' => $resourceId,
@@ -79,7 +73,6 @@ class S3Controller extends Controller
         }
     }
 
-    // Feature 2: Batch Upload with Dynamic Quota Checking
     public function uploadObject(Request $request)
     {
         $request->validate([
@@ -97,13 +90,12 @@ class S3Controller extends Controller
         }
 
         try {
-            // 1. Find out what plan this bucket belongs to
             $activeResource = DB::table('provisioned_resources')
                 ->where('ministack_resource_id', $bucketName)
                 ->where('status', 'running')
                 ->first();
 
-            $limitGB = 5; // Default
+            $limitGB = 5; 
             if ($activeResource) {
                 $plan = DB::table('subscription_plans')->where('id', $activeResource->plan_id)->first();
                 if ($plan) $limitGB = $plan->storage_quota_gb;
@@ -111,7 +103,6 @@ class S3Controller extends Controller
 
             $limitBytes = $limitGB * 1024 * 1024 * 1024;
 
-            // 2. Weigh the existing bucket
             $s3Client = Storage::disk('s3')->getClient();
             $objects = $s3Client->listObjectsV2(['Bucket' => $bucketName]);
             $currentSize = 0;
@@ -122,12 +113,10 @@ class S3Controller extends Controller
                 }
             }
 
-            // 3. The Dynamic Limit Check
             if (($currentSize + $newFilesTotalSize) > $limitBytes) {
                 return response()->json(['success' => false, 'message' => "Upload Blocked: Adding these files exceeds your {$limitGB}GB quota."], 422);
             }
 
-            // 4. Batch Upload
             $uploadedCount = 0;
             foreach ($files as $file) {
                 $fileName = $file->getClientOriginalName();
@@ -148,7 +137,6 @@ class S3Controller extends Controller
         }
     }
 
-    // Feature 3: View Files in a Bucket (Now AJAX-Ready)
     public function viewFiles(Request $request)
     {
         $request->validate(['bucket_name' => 'required|string']);
@@ -159,7 +147,6 @@ class S3Controller extends Controller
             $objects = $s3Client->listObjectsV2(['Bucket' => $bucketName]);
             $files = $objects['Contents'] ?? [];
 
-            // If the request comes from our JavaScript, return JSON
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => true,
@@ -168,7 +155,6 @@ class S3Controller extends Controller
                 ]);
             }
 
-            // Fallback for standard page loads
             return back()->with('files', $files)->with('current_bucket', $bucketName);
         } catch (\Exception $e) {
             if ($request->wantsJson()) {
@@ -178,7 +164,6 @@ class S3Controller extends Controller
         }
     }
 
-    // Feature 4: Download a File
     public function downloadFile($bucket, $key)
     {
         try {
@@ -196,7 +181,6 @@ class S3Controller extends Controller
         }
     }
 
-    // Feature 5: Delete a File
     public function deleteFile(Request $request)
     {
         try {
@@ -214,7 +198,6 @@ class S3Controller extends Controller
         }
     }
 
-    // Feature 6: Terminate Bucket & Stop Billing
     public function deleteBucket(Request $request)
     {
         $bucketName = $request->bucket_name;
@@ -222,35 +205,29 @@ class S3Controller extends Controller
         try {
             $s3Client = Storage::disk('s3')->getClient();
 
-            // AWS requires a bucket to be completely empty before it can be deleted
             $objects = $s3Client->listObjectsV2(['Bucket' => $bucketName]);
             if (!empty($objects['Contents'])) {
                 return back()->with('error', 'Bucket must be empty before termination. Please delete all files first.');
             }
 
-            // 1. Demolish the locker in MiniStack
             $s3Client->deleteBucket(['Bucket' => $bucketName]);
 
-            // 2. Cari resource ini di database untuk mendapatkan ID-nya
             $resource = DB::table('provisioned_resources')
                 ->where('ministack_resource_id', $bucketName)
                 ->where('user_id', Auth::id())
                 ->first();
 
             if ($resource) {
-                // 3. LOGIKA BARU: Hapus Kredensial API yang terikat dengan Bucket ini
                 DB::table('access_credentials')
                     ->where('provisioned_id', $resource->id)
                     ->delete();
 
-                // 4. Update the Database Clipboard (Stop billing)
                 DB::table('provisioned_resources')->where('id', $resource->id)->update([
                     'status' => 'terminated',
                     'rent_end_date' => now(),
                     'updated_at' => now()
                 ]);
 
-                // 5. Log activity penghapusan
                 DB::table('activity_logs')->insert([
                     'user_id'     => Auth::id(),
                     'resource_id' => $resource->id,
@@ -268,7 +245,6 @@ class S3Controller extends Controller
 
     public function generateCredentials(Request $request)
     {
-        // Validasi input dari form dropdown di dashboard
         $request->validate([
             'provisioned_id' => 'required|exists:provisioned_resources,id'
         ]);
@@ -276,7 +252,6 @@ class S3Controller extends Controller
         $userId = Auth::id();
         $provisionedId = $request->provisioned_id;
 
-        // 1. Cek kepemilikan resource (Pastikan ini milik user yang sedang login)
         $resource = DB::table('provisioned_resources')
             ->where('id', $provisionedId)
             ->where('user_id', $userId)
@@ -286,13 +261,11 @@ class S3Controller extends Controller
             return back()->with('error', 'Gagal: Resource tidak ditemukan atau bukan milik Anda.');
         }
 
-        // 2. Cek apakah resource INI sudah punya kredensial aktif
         if (DB::table('access_credentials')->where('provisioned_id', $provisionedId)->where('is_active', true)->exists()) {
             return back()->with('error', "Resource {$resource->instance_name} sudah memiliki kredensial API aktif.");
         }
 
         try {
-            // 3. Koneksikan IAM Client ke MiniStack
             $iamClient = new \Aws\Iam\IamClient([
                 'version' => 'latest',
                 'region'  => env('AWS_DEFAULT_REGION', 'us-east-1'),
@@ -303,15 +276,12 @@ class S3Controller extends Controller
                 ],
             ]);
 
-            // 4. Buat nama user IAM yang unik spesifik untuk resource ini
             $iamUsername = 'usr_' . $userId . '_res_' . $provisionedId . '_' . time();
 
-            // 5. Perintahkan MiniStack membuat User
             $iamClient->createUser([
                 'UserName' => $iamUsername
             ]);
 
-            // 6. Perintahkan MiniStack membuatkan Kunci API
             $result = $iamClient->createAccessKey([
                 'UserName' => $iamUsername
             ]);
@@ -319,7 +289,6 @@ class S3Controller extends Controller
             $accessKey = $result['AccessKey']['AccessKeyId'];
             $secretKey = $result['AccessKey']['SecretAccessKey'];
 
-            // 7. Simpan ke database
             DB::table('access_credentials')->insert([
                 'user_id'              => $userId,
                 'provisioned_id'       => $provisionedId,
@@ -347,7 +316,6 @@ class S3Controller extends Controller
         $targetPlanId = $request->target_plan_id;
         $userId = Auth::id();
 
-        // 1. Retrieve the resource and make sure it exists, is storage, and belongs to the user
         $resource = DB::table('provisioned_resources')
             ->where('ministack_resource_id', $bucketName)
             ->where('user_id', $userId)
@@ -358,7 +326,6 @@ class S3Controller extends Controller
             return back()->with('error', 'Resource bucket tidak ditemukan atau bukan milik Anda.');
         }
 
-        // 2. Fetch the new plan details from subscription_plans (ensure it is a Storage plan)
         $plan = DB::table('subscription_plans')
             ->join('iaas_services', 'subscription_plans.service_id', '=', 'iaas_services.id')
             ->where('subscription_plans.id', $targetPlanId)
@@ -370,7 +337,6 @@ class S3Controller extends Controller
             return back()->with('error', 'Target plan tidak valid untuk layanan Storage.');
         }
 
-        // 3. Quota check: ensure current usage doesn't exceed the target plan's storage quota
         $usedBytes = 0;
         try {
             $s3Client = Storage::disk('s3')->getClient();
@@ -381,7 +347,7 @@ class S3Controller extends Controller
                 }
             }
         } catch (\Exception $e) {
-            // Fail silently if S3/MiniStack is off, allowing tests to run
+
         }
         $usedGB = $usedBytes / (1024 * 1024 * 1024);
 
@@ -394,7 +360,6 @@ class S3Controller extends Controller
             return back()->with('error', "Anda tidak dapat menurunkan paket penyimpanan. Kapasitas yang digunakan saat ini ({$displaySize}) melebihi kuota paket target ({$plan->storage_quota_gb} GB).");
         }
 
-        // 4. Update the user_subscriptions table (if it exists)
         if (\Illuminate\Support\Facades\Schema::hasTable('user_subscriptions')) {
             DB::table('user_subscriptions')
                 ->where('ministack_bucket_name', $bucketName)
@@ -406,7 +371,6 @@ class S3Controller extends Controller
                 ]);
         }
 
-        // 5. Update the provisioned_resources table
         $hourlyCost = $plan->monthly_price / 720;
 
         DB::table('provisioned_resources')
@@ -419,7 +383,6 @@ class S3Controller extends Controller
                 'updated_at'  => now()
             ]);
 
-        // Log the activity
         DB::table('activity_logs')->insert([
             'user_id'     => $userId,
             'resource_id' => $resource->id,
